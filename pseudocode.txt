@@ -1,0 +1,42 @@
+const LEVELS = n
+video = capture()
+for i=1 to video.length:
+    current = video[i]
+    precedent = video[i-1]
+
+    current_pyramid = pyr(current)
+    precedent_pyramid = pyr(precedent)
+
+    global_motion = GME(current_pyramid, precedent_pyramid)
+    show(global_motion)
+
+
+//// Functions
+
+function GME(curr, prec){
+    // execution of level 1: dense motion estimation
+    coarser_motion_estimation = motion_estimation(curr[0], prec[0])
+    current_parameters = estimate_parameters(coarser_motion_estimation)
+
+    // execution of lower levels:
+    for i=1 to LEVELS:
+        current_parameters = project_parameters()
+        current_parameters = optimize_parameters(current_parameters, curr[i], prec[i])
+}
+
+function motion_estimation(current_frame, precedent_frame){
+    // BBME here
+}
+
+function estimate_parameters(motion_map){
+    // parameter estimation from dense motion field
+}
+
+function project_parameters(current){
+    // transform parameters from level i to level i+1
+    // paper pag. 2
+}
+
+function optimize_parameters(current_parameters, current_frame, previous_frame){
+    // gradient descent to fix the parameters
+}
