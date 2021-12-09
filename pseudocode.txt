@@ -4,18 +4,18 @@ for i=1 to video.length:
     current = video[i]
     precedent = video[i-1]
 
-    current_pyramid = pyr(current)
-    precedent_pyramid = pyr(precedent)
-
-    global_motion = GME(current_pyramid, precedent_pyramid)
+    global_motion = GME(current, precedent)
     show(global_motion)
 
 
 //// Functions
 
 function GME(curr, prec){
+    curr_pyr = pyr(curr)
+    prec_pyr = pyr(prec)
+
     // execution of level 1: dense motion estimation
-    coarser_motion_estimation = motion_estimation(curr[0], prec[0])
+    coarser_motion_estimation = motion_estimation(curr_pyr[0], prec_pyr[0])
     current_parameters = estimate_parameters(coarser_motion_estimation)
 
     // execution of lower levels:
