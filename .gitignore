@@ -1,3 +1,6 @@
 __pycache__/*
 frames/*
 .vs/
+
+# virtual env
+.env/
