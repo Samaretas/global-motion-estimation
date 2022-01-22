@@ -110,6 +110,14 @@ def parameter_projection(parameters):
     return parameters
 
 
+def compute_error(a, b, c, d, e, f, g, h, pre, cur):
+    parameters = [a, b, c, d, e, f, g, h]
+    compensated = compute_compensated_frame(pre, parameters)
+    error_matrix = compensated-cur
+    error_matrix = error_matrix*error_matrix
+    return
+
+
 def parameter_optimization(parameters, previous, current):
     """
         Parameter optimization with gradient descent.
@@ -124,26 +132,15 @@ def parameter_optimization(parameters, previous, current):
     pre = previous.astype('int')
     cur = current.astype('int')
 
-    current_error = MAXINT
-    for j in range(len(parameters)):    # iterate over all the parameters
-        step = 0.1
-        step_update = step/N_MAX_ITERATIONS
-        for i in range(N_MAX_ITERATIONS):       # iterate N times
-            compensated = compute_compensated_frame(pre, parameters)
-            error_matrix = compensated-cur
-            error_matrix = error_matrix*error_matrix
-            iteration_error = np.sum(error_matrix)
-            delta_error = iteration_error-current_error
-            if delta_error > 0:
-                # error increased, must change the direction of the update
-                step = -step
-            elif delta_error < 0:
-                # error decreased, keep the same direction
-                pass
-            current_error = iteration_error
-            parameters[j] = parameters[j]+step
-            step = math.copysign(1, step)*(abs(step)-step_update)
-        print(f"completed parameter a{j}, value: {parameters[j]}")
+    for _ in range(N_MAX_ITERATIONS):       # iterate N times
+        compensated = compute_compensated_frame(pre, parameters)
+        for i in range(compensated.shape[0]):
+            for j in range(compensated.shape[1]):
+                target = cur[i][j]
+                def error(a0, a1, a2, a3, a4, a5, a6, a7): return compensated[max(0, min(compensated.shape[0]-1, int(
+                    (a0+a2*i+a3*j)/(a6*i+a7*j+1))))][max(0, min(compensated.shape[1]-1, int((a1+a4*i+a5*j)/(a6*i+a7*j+1))))]
+                
+                
     return parameters
 
 
