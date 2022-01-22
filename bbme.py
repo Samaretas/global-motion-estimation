@@ -308,7 +308,7 @@ class Block_matcher():
         self.motion_field = np.empty((int(self.height / self.block_size), int(self.width / self.block_size), 2))
 
         if self.pixel_acc == 1:
-            print('original image is selected')
+            # print('original image is selected')
             pass
         elif self.pixel_acc == 2:
             cur_frame = cv2.resize(cur_frame, dsize=(self.width * 2, self.height * 2), interpolation=cv2.INTER_LINEAR)
@@ -323,7 +323,7 @@ class Block_matcher():
 
         elif self.searching_Procedure == 2:
             self.threestep_search(prev_frame,cur_frame)
-            print('three step search')
+            # print('three step search')
 
         return self.interpolated_frame, self.motion_field
 

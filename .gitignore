@@ -1,6 +1,8 @@
-__pycache__/*
 frames/*
 .vs/
+.vscode/
+__pycache__/*
 
 # virtual env
 .env/
+.venv/
