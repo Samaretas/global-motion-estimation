@@ -86,7 +86,11 @@ def first_estimation(precedent, current):
     """
     Computes the parameters for the perspective motion model for the first iteration.
 
-    Since the paper does not specify how to get the parameters from the first motion estimation I assume it sets all of them to 0 but a0 and a1 which are clearly initialized.
+    Since the paper does not specify how to get the parameters from the first motion estimation I assume it sets all of them to 0 but a0 and a1 which are initialized thorugh the dense motion field estimation.
+
+    Parameters:
+    @precedent  previous frame
+    @current    current frame
     """
     # estimate the dense motion field
     dense_motion_field = dense_motion_estimation(precedent, current)

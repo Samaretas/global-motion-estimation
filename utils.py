@@ -38,15 +38,8 @@ def get_pyramids(original_image, levels=3):
 
 
 if __name__ == "__main__":
-    import time
-
-    # frames = get_video_frames("./hall_objects_qcif.y4m")
-    # for frame in frames:            
-    #     cv2.imshow('video', frame)
-    #     cv2.waitKey(1)
-
-    # pyr = get_pyramids(frames[0], 3)
-    # for level in pyr:
-    #     cv2.imshow('lvl', level)
-    #     cv2.waitKey(1000)
-
+    frames = get_video_frames("./hall_objects_qcif.y4m")
+    pyrs = get_pyramids(frames[30])
+    for pyramid in pyrs:
+        cv2.imshow("Pyr", pyramid)
+        cv2.waitKey(0)
