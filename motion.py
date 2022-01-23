@@ -5,7 +5,7 @@ import math
 from utils import get_pyramids
 from bbme import Block_matcher
 
-N_MAX_ITERATIONS = 100
+N_MAX_ITERATIONS = 50
 
 
 def sum_squared_differences(pre_frame, cur_frame):
@@ -54,6 +54,7 @@ def motion_model(p, x, y):
     """
     Given the current parameters and the coordinates of a point, computes the compensated coordinates.
     """
+    # logfile = open("log", "a")
     # TODO: change this with a more conscious approximation (<> x.5)
     try:
         x1 = int((p[0] + p[2] * x + p[3] * y) / (p[6] * x + p[7] * y + 1))
@@ -62,6 +63,8 @@ def motion_model(p, x, y):
         # print(f"Denominator problem: {(p[6]*x+p[7]*y+1)} cannot be used")
         # print(f"parameters p[6]:{p[6]} p[7]:{p[7]} x:{x} y:{y}")
         x1 = y1 = MAXINT
+    # logfile.write(f"from ({x},{y}) to ({x1},{y1})\n")
+    # logfile.close()
     return (x1, y1)
 
 
@@ -69,16 +72,15 @@ def compute_compensated_frame(pre_frame, parameters):
     """
     Computes I' given I and the current parameters.
     """
-    compensated = np.zeros_like(pre_frame)
+    compensated = np.copy(pre_frame)
     for i in range(compensated.shape[0]):
         for j in range(compensated.shape[1]):
             (x1, y1) = motion_model(parameters, i, j)
-            # sanitize limits
-            x1 = max(0, x1)
-            x1 = min(x1, compensated.shape[0] - 1)
-            y1 = max(0, y1)
-            y1 = min(y1, compensated.shape[1] - 1)
-            compensated[x1][y1] = pre_frame[i][j]
+            try:
+                compensated[x1][y1] = pre_frame[i][j]
+            except IndexError:
+                # if out of border, we just use the old value
+                pass
     return compensated
 
 
@@ -163,7 +165,14 @@ def grandient_single_parameter(parameters, previous, current, index):
     error_matrix = sum_squared_differences(compensated, current)
     previous_error = np.sum(error_matrix)
     min_error = previous_error
+    prev_delta = (MAXINT, MAXINT)
     for _ in range(N_MAX_ITERATIONS):
+        new_zero_zero = motion_model(parameters, 0, 0)
+        delta = (0-new_zero_zero[0], 0-new_zero_zero[1])
+        if delta == prev_delta:
+            continue
+        else:
+            prev_delta = delta
         compensated = compute_compensated_frame(previous, parameters)
         error_matrix = sum_squared_differences(compensated, current)
         current_error = np.sum(error_matrix)
@@ -178,6 +187,7 @@ def grandient_single_parameter(parameters, previous, current, index):
         step = step*delta_ratio
         previous_error=current_error
     return best
+
 
 def handmade_gradient_descent_mp(parameters, previous, current):
     """
@@ -199,7 +209,6 @@ def handmade_gradient_descent_mp(parameters, previous, current):
     best = pool.starmap(grandient_single_parameter, args)
 
     return best
-
 
 
 def global_motion_estimation(precedent, current):
@@ -224,6 +233,4 @@ def global_motion_estimation(precedent, current):
         parameters = handmade_gradient_descent_mp(parameters, prec_pyr[i], curr_pyr[i])
     
     compensated = compute_compensated_frame(prec_pyr[-1], parameters)
-    actual_motion = np.absolute(compensated.astype('int')-current.astype('int'))
-    actual_motion = actual_motion.astype('uint8')
-    return actual_motion
+    return compensated
