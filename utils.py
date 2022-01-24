@@ -36,6 +36,21 @@ def get_pyramids(original_image, levels=3):
         pyramid.insert(0, scaled)
     return pyramid
 
+def draw_motion_vector(frame, motion_field):
+    height, width = frame.shape
+    frame_dummy = frame.copy()
+    mv_h , mv_w,_ = motion_field.shape
+    b_size = int(height/mv_h)
+
+    for y in range(0, mv_h ):
+        for x in range(0, mv_w ):
+            idx_x = x * b_size
+            idx_y = y * b_size
+            mv_x, mv_y = motion_field[y][x]
+
+            cv2.arrowedLine(frame_dummy, (idx_x, idx_y), (int(idx_x + mv_x), int(idx_y + mv_y)), (0, 255, 0), 1)
+    return frame_dummy
+
 
 if __name__ == "__main__":
     frames = get_video_frames("./hall_objects_qcif.y4m")
