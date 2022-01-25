@@ -84,19 +84,6 @@ def compute_current_target_block_corners(br, bl, wr, wc, bs):
     return (top_left_x, top_left_y), (bottom_right_x, bottom_right_y)
 
 
-    """
-    Exhaustive search
-
-    Parameters:
-    @previous
-    @current
-    @mf np array of the motion field to compute
-    @height rows of the frame
-    @width columns of the frame
-    @pnorm_function dfd function to use
-    @block_size size of each block (in pixels)
-    @search_windows halvened dimension of the search window
-    """
 def exhaustive_search(previous, current, mf, height, width, pnorm_function, block_size=4, search_window=2):
     """
     exhaustive_search 
