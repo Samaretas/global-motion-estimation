@@ -1,24 +1,28 @@
-from math import floor
 import os
 import cv2
 import itertools
 import numpy as np
+from math import floor
 from utils import draw_motion_vector, get_video_frames
 
 
-def get_motion_fied(previous, current, block_size=4, search_window=2, searching_procedure=1):
+def get_motion_fied(previous, current, block_size=4, search_window=2, searching_procedure=1, pnorm_distance=0):
     height = previous.shape[0]
     width = previous.shape[1]
 
     motion_field = np.empty(
         (int(height / block_size), int(width / block_size), 2))
 
-    if searching_procedure == 1:
-        motion_field = exhaustive_search(previous, current, motion_field, height,
-                                         width,  mae, block_size, search_window)
-    if searching_procedure == 2:
-        motion_field = threestep_search(previous, current, motion_field, height,
-                                        width,  mae, block_size, search_window)
+    # if searching_procedure == 1:
+    #     motion_field = exhaustive_search(previous, current, motion_field, height,
+    #                                      width,  mae, block_size, search_window)
+    # if searching_procedure == 2:
+    #     motion_field = threestep_search(previous, current, motion_field, height,
+    #                                     width,  mae, block_size, search_window)
+    search = searching_procedures[searching_procedure]
+    pnorm = pnorm_distances[pnorm_distance]
+    motion_field = search(previous, current, motion_field, height,
+                          width,  pnorm, block_size, search_window)
     return motion_field
 
 
@@ -32,7 +36,8 @@ def compute_dfd(current_block, anchor_block, pnorm_function):
     @pnorm_function name of the function to use
     """
     assert current_block.shape == anchor_block.shape
-    diff_block = np.array(current_block, dtype=np.float16) - np.array(anchor_block, dtype=np.float16)
+    diff_block = np.array(current_block, dtype=np.float16) - \
+        np.array(anchor_block, dtype=np.float16)
     return pnorm_function(diff_block)
 
 
@@ -56,6 +61,14 @@ def mse(diff_block):
     @diff_block block to compute
     """
     return np.sum(diff_block * diff_block)
+
+
+def compute_current_target_block_corners(br, bl, wr, wc, bs):
+    top_left_y = br + wr
+    top_left_x = bl + wc
+    bottom_right_y = br + wr + bs - 1
+    bottom_right_x = bl + wc + bs - 1
+    return (top_left_x, top_left_y), (bottom_right_x, bottom_right_y)
 
 
 def exhaustive_search(previous, current, mf, height, width, pnorm_function, block_size=4, search_window=2):
@@ -237,9 +250,91 @@ def threestep_search(previous, current, mf, height, width, pnorm_function, block
     # print('3steps')
 
 
-def twodlog_search():
-    print('2dlog')
+def twodlog_search(previous, current, mf, height, width, pnorm_function, block_size=4, search_window=2):
+    positions = []
+    for (block_row, block_col) in itertools.product(range(0, height - (block_size - 1), block_size),
+                                                    range(0, width - (block_size - 1), block_size)):
+        dx, dy = 0, 0
+        step_size = search_window
+        print(f"block {block_row} {block_col}")
 
+        anchor_block = previous[block_row: block_row + block_size,
+                                block_col: block_col + block_size]
+
+
+        # initialize block minimum
+        min_block = np.infty
+
+        # get coordinates of current block
+        x, y = block_row, block_col
+
+        while step_size > 1:
+            print(f"current origin {x} {y}")
+
+            # initialize step minimum
+            min_step = min_block
+
+            positions.clear()
+            if step_size > 2:
+                # search positions are cross-shaped
+                positions.append([x, y])
+                positions.append([x + step_size, y])
+                positions.append([x - step_size, y])
+                positions.append([x, y + step_size])
+                positions.append([x, y - step_size])
+            elif step_size == 2:
+                positions = list(itertools.product([x - 2, x, x + 2], [y - 2, y, y + 2]))
+
+            for (window_col, window_row) in positions:
+                print(f"current position {window_row}, {window_col}")
+
+                top_left, bottom_right = compute_current_target_block_corners(
+                    x, y, window_row, window_col, block_size)
+
+                if (top_left[0] < 0 or top_left[1] < 0 or
+                        bottom_right[0] > width - 1 or bottom_right[1] > height - 1):
+                    continue
+
+                current_block = current[top_left[1]: bottom_right[1] +
+                                        1, top_left[0]: bottom_right[0] + 1]
+                dfd = compute_dfd(current_block, anchor_block, pnorm_function)
+                print(dfd)
+
+                if dfd < min_step:
+                    print("update min")
+                    min_step = dfd
+                    min_block = dfd
+                    dx = window_row
+                    dy = window_col
+
+            if dx == x and dy == y:
+                print("count")
+                # update step size
+                step_size //= 2
+            print("")
+            
+
+            # update coordinates
+            x, y = dx, dy
+            print(step_size)
+            print(min_block)
+            print("")
+            print("")
+
+        mf[floor(block_row / block_size),
+            floor(block_col / block_size), 0] = dy
+        mf[floor(block_row / block_size),
+            floor(block_col / block_size), 1] = dx
+
+    return mf
+
+
+def diamond_search():
+    print("diamond_search")
+
+
+pnorm_distances = [mae, mse]
+searching_procedures = [exhaustive_search, threestep_search, twodlog_search, diamond_search]
 
 if __name__ == '__main__':
     frames = get_video_frames("./hall_objects_qcif.y4m")
@@ -253,7 +348,7 @@ if __name__ == '__main__':
     # cv2.waitKey(0)
 
     motion_field = get_motion_fied(
-        previous, current, block_size=6, searching_procedure=2)
+        previous, current, block_size=6, searching_procedure=2, search_window=2)
     # print(motion_field)
     draw = draw_motion_vector(current, motion_field)
 
