@@ -1,9 +1,8 @@
 import multiprocessing
 from xmlrpc.client import MAXINT
 import numpy as np
-import math
 from utils import get_pyramids
-from bbme import Block_matcher
+from temp_bbme import Block_matcher
 
 N_MAX_ITERATIONS = 50
 
