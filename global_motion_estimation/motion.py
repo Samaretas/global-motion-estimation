@@ -10,19 +10,19 @@ import cv2
 N_MAX_ITERATIONS = 50
 
 
-def sum_squared_differences(pre_frame, cur_frame):
+def sum_squared_differences(previous, current):
     """
     Computes the sum of squared differences between frames.
 
-    Parameters:
-    @pre_frame  previous frame
-    @cur_frame  current frame
+    Args:
+        previous (np.ndarray):  previous frame
+        current (np.ndarray):  current frame
     """
-    if type(pre_frame) != np.ndarray or type(cur_frame) != np.ndarray:
+    if type(previous) != np.ndarray or type(current) != np.ndarray:
         raise Exception("Should use only numpy arrays as parameters")
-    if pre_frame.shape != cur_frame.shape:
+    if previous.shape != current.shape:
         raise Exception("Frames must have the same shape")
-    E = cur_frame - pre_frame
+    E = current - previous
     E = E * E
     return E
 
@@ -34,6 +34,13 @@ def dense_motion_estimation(previous, current):
     The dense motion field corresponds to a matrix of size the # of blocks
     that fit in the image for each dimension. Each element of the matrix
     contains two values, the shift in x and y directions.
+
+    Args:
+        previous (np.ndarray): previous frame of the video
+        current (np.ndarray): current frame of the video
+
+    Returns:
+        motion_field (np.ndarray): estimated dense motion field
     """
     BM = Block_matcher(block_size=6, search_range=2, pixel_acc=1, searching_procedure=2)
 
@@ -44,6 +51,12 @@ def dense_motion_estimation(previous, current):
 def compute_first_parameters(dense_motion_field):
     """
     Given the initial motion field, returns the first estimation of the parameters.
+
+    Args:
+        dense_motion_field (np.ndarray): ndarray with shape[-1]=2; the touples in the last dimension represent the shift of the pixel from previous to current frame. It is computed via dense motion field estimation.
+
+    Returns:
+        list[float]: the list of parameters of the motion model
     """
     a0 = np.mean(dense_motion_field[:, :, 0])
     a1 = np.mean(dense_motion_field[:, :, 1])
@@ -55,6 +68,16 @@ def compute_first_parameters(dense_motion_field):
 def motion_model(p, x, y):
     """
     Given the current parameters and the coordinates of a point, computes the compensated coordinates.
+    Note that since the motion model is separated from the rest of the code, it can be easily changed with others; this means that trying different types of motion model should be as easy as writing them in this function.
+    Note: w/ this you should chanfe also compute_first_parameters.
+
+    Args:
+        parameters (list): parameters of the motion model
+        x (int): x coordinate to translate with the motion model
+        y (int): y coordinate to translate with the motion model
+
+    Returns:
+        tuple[int,int]:     couple of coordinates, both translated w/ motion model
     """
     # TODO: change this with a more conscious approximation (<> x.5)
     try:
@@ -68,54 +91,9 @@ def motion_model(p, x, y):
     return (x1, y1)
 
 
-@timer
-def compute_compensated_frame_with_log(previous: np.ndarray, parameters: list):
-    """
-    Computes I' given I and the current parameters.
-
-    Args:
-        previous (np.ndarray): previous frame
-        parameters (list): current parameters
-
-    Returns:
-        np.ndarray: motion-compensated frame
-    """
-    # 1. get the list of all coordinates
-    # actually useless
-    # 2. compute the compensated coordinates with the model
-    compensated_coordinates = []
-    with open("log.txt", "w") as outfile:
-        for i in range(previous.shape[0]):
-            for j in range(previous.shape[1]):
-                x1, y1 = motion_model(parameters, i, j)
-                compensated_coordinates.append([x1, y1])
-                s = str(f"[{i}, {j}]") + "=>" + str(f"[{x1}, {y1}]") + "\n"
-                outfile.write(s)
-    # 3. sanitize the coordinates (respect for thr boundaries)
-    for i in range(len(compensated_coordinates)):
-        if compensated_coordinates[i][0] < 0:
-            compensated_coordinates[i][0] = 0
-        elif compensated_coordinates[i][0] >= previous.shape[0]:
-            compensated_coordinates[i][0] = previous.shape[0] - 1
-
-        if compensated_coordinates[i][1] < 0:
-            compensated_coordinates[i][1] = 0
-        elif compensated_coordinates[i][1] >= previous.shape[1]:
-            compensated_coordinates[i][1] = previous.shape[1] - 1
-    # 4. create compensated frame with the compensated coordinates
-    compensated_image = np.copy(previous)
-    for i in range(previous.shape[0]):
-        for j in range(previous.shape[1]):
-            cc = compensated_coordinates.pop(0)  # compensated_coordinate
-            compensated_image[cc[0]][cc[1]] = previous[i][j]
-        name = "./imgs/compensated_image" + str(i).zfill(3) + ".png"
-        cv2.imwrite(name, compensated_image)
-    return compensated_image
-
-
 def compute_compensated_frame_complete(previous: np.ndarray, parameters: list):
     """
-    Computes I' given I and the current parameters.
+    Computes I' given I and the current parameters. Differently from the non-corrected version, it also corrects noise with the use of a small convolutional kernel.
 
     Args:
         previous (np.ndarray): previous frame
@@ -124,18 +102,12 @@ def compute_compensated_frame_complete(previous: np.ndarray, parameters: list):
     Returns:
         np.ndarray: motion-compensated frame
     """
-    # 1. get the list of all coordinates
-    # actually useless
-    # 2. compute the compensated coordinates with the model
     compensated_coordinates = []
-    with open("log.txt", "w") as outfile:
-        for i in range(previous.shape[0]):
-            for j in range(previous.shape[1]):
-                x1, y1 = motion_model(parameters, i, j)
-                compensated_coordinates.append([x1, y1])
-                s = str(f"[{i}, {j}]") + "=>" + str(f"[{x1}, {y1}]") + "\n"
-                outfile.write(s)
-    # 3. sanitize the coordinates (respect for thr boundaries)
+    for i in range(previous.shape[0]):
+        for j in range(previous.shape[1]):
+            x1, y1 = motion_model(parameters, i, j)
+            compensated_coordinates.append([x1, y1])
+    # sanitize the coordinates (respect for thr boundaries)
     for i in range(len(compensated_coordinates)):
         if compensated_coordinates[i][0] < 0:
             compensated_coordinates[i][0] = 0
@@ -146,7 +118,7 @@ def compute_compensated_frame_complete(previous: np.ndarray, parameters: list):
             compensated_coordinates[i][1] = 0
         elif compensated_coordinates[i][1] >= previous.shape[1]:
             compensated_coordinates[i][1] = previous.shape[1] - 1
-    # 4. create compensated frame with the compensated coordinates
+    # create compensated frame with the compensated coordinates
     compensated_image = np.copy(previous)
     mask = np.zeros_like(previous, dtype=bool)
     for i in range(previous.shape[0]):
@@ -154,11 +126,17 @@ def compute_compensated_frame_complete(previous: np.ndarray, parameters: list):
             cc = compensated_coordinates.pop(0)  # compensated_coordinate
             compensated_image[cc[0]][cc[1]] = previous[i][j]
             mask[cc[0]][cc[1]] = True
-    for i in range(1, previous.shape[0]-1):
-        for j in range(1, previous.shape[1]-1):
-            print("")            
+    # the mask identifies the points where we find noise, namely the points that retain the value of the previous frame
+    for i in range(1, previous.shape[0] - 1):
+        for j in range(1, previous.shape[1] - 1):
             if not mask[i][j]:
-                compensated_image[i][j] = int(np.sum(compensated_image[i-1:i+2,j-1:j+2])/9)
+                compensated_image[i][j] = int(
+                    (
+                        np.sum((compensated_image[i - 1 : i + 2, j - 1 : j + 2]))
+                        - compensated_image[i][j]
+                    )
+                    / 8
+                )
     return compensated_image
 
 
@@ -206,7 +184,13 @@ def parameter_projection(parameters):
     """
     Projection of the parameters from level l to level l+1.
 
-    `The projection of the motion parameters from one level onto the next one consists merely of multiplying a0 and a1 by 2, and dividing a6 and a7 by two. `
+    Citing the paper: `The projection of the motion parameters from one level onto the next one consists merely of multiplying a0 and a1 by 2, and dividing a6 and a7 by two.`
+
+    Args:
+        parameters (list): the list of the current parameters for motion model at level l
+
+    Returns:
+        parameters (list): the list of the updated parameters for motion model at level l+1
     """
     parameters[0] *= 2
     parameters[1] *= 2
@@ -218,7 +202,8 @@ def parameter_projection(parameters):
 @timer
 def handmade_gradient_descent(parameters, previous, current):
     """
-    0. start with the current estimation of the parameters
+    Updates the paramters with a gradient-descent-like strategy.
+    start with the current estimation of the parameters
     for each parameter
         perform N iterations where
             a. compute the error compensated-real
@@ -227,7 +212,14 @@ def handmade_gradient_descent(parameters, previous, current):
                 - if delta is positive, we are going in the correct direction, keep 'er goin
                 - if delta is negative, we are heading uphill, change the sign of the update
                 - at each iteration decrease the value of the update
-    Note: here we can apply massively parallelism
+
+    Args:
+        parameters (list):  parameters of the model of motion
+        previous (np.ndarray):  previous frame
+        current (np.ndarray):  current frame
+
+    Returns:
+        best (list): the optimized parameter vector for the model of motion
     """
     best = parameters
     for index in range(len(parameters)):
@@ -256,6 +248,19 @@ def handmade_gradient_descent(parameters, previous, current):
 
 
 def grandient_single_parameter(parameters, previous, current, index):
+    """
+    Performs gradient descent on a single parameter.
+    This function was created with the scope to be launched on a different process, in order to optimize the computation time of the estimation of all the parameters.
+
+    Args:
+        parameters (list):  parameters of the model of motion
+        previous (np.ndarray):  previous frame
+        current (np.ndarray):  current frame
+        index (int): the index of the single parameter to be optimized
+
+    Returns:
+        best (list): the optimized parameter vector for the model of motion
+    """
     best = parameters[index]
     step = parameters[index] / 10
     if step == 0:
@@ -284,7 +289,16 @@ def grandient_single_parameter(parameters, previous, current, index):
 @timer
 def handmade_gradient_descent_mp(parameters, previous, current):
     """
-    One process for each parameter.
+    Function used to compute the gradient descent separately for each parameter.
+    The function launches a process for each parameter, each process will run a gradient descent task to optimize the parameter.
+
+    Args:
+        parameters (list):  parameters of the model of motion
+        previous (np.ndarray):  previous frame
+        current (np.ndarray):  current frame
+
+    Returns:
+        best (list): the optimized parameter vector for the model of motion
     """
     pool = multiprocessing.Pool(processes=len(parameters))
     args = [
@@ -296,26 +310,34 @@ def handmade_gradient_descent_mp(parameters, previous, current):
     return best
 
 
+@timer
 def global_motion_estimation(precedent, current):
     """
     Method to perform the global motion estimation.
 
-    Parameters:
-        @precedent  the frame at time t-1
-        @current    the frame at time t
+    Args:
+        precedent (np.ndarray): the frame at time t-1
+        current (np.ndarray): the frame at time t
     """
     # create the gaussian pyramids of the frames
-    prec_pyr = get_pyramids(precedent)
+    prev_pyr = get_pyramids(precedent)
     curr_pyr = get_pyramids(current)
 
     # first (coarse) level estimation
-    parameters = first_estimation(prec_pyr[0], curr_pyr[0])
-    parameters = handmade_gradient_descent(parameters, prec_pyr[0], curr_pyr[0])
+    parameters = first_estimation(prev_pyr[0], curr_pyr[0])
+    parameters = handmade_gradient_descent_mp(parameters, prev_pyr[0], curr_pyr[0])
 
     # all the other levels
-    for i in range(1, len(prec_pyr)):
+    for i in range(1, len(prev_pyr)):
         parameters = parameter_projection(parameters)
-        parameters = handmade_gradient_descent_mp(parameters, prec_pyr[i], curr_pyr[i])
+        parameters = handmade_gradient_descent_mp(parameters, prev_pyr[i], curr_pyr[i])
+        print(f"Updated parameters: {parameters}")
+        s = f"Compensated image at layer {i}"
+        print(s)
+        compensated = compute_compensated_frame_complete(prev_pyr[i], parameters)
+        cv2.imshow(s, compensated)
+        cv2.imwrite(s + ".png", compensated)
+        cv2.waitKey(1)
 
-    compensated = compute_compensated_frame(prec_pyr[-1], parameters)
+    compensated = compute_compensated_frame(prev_pyr[-1], parameters)
     return compensated

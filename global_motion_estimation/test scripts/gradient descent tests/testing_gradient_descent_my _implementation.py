@@ -3,8 +3,13 @@ import motion as motion
 import cv2
 import numpy as np
 
-# if __name__ == "__main__":
-if True:
+"""
+    Note: here we can use the multiprocessing function to perform gradient descent, but in that case we need to call the script as main.
+    In the case we need to debug we have to switch off the debug. Therefore we must use the sequential version of GD.
+"""
+
+if __name__ == "__main__":
+# if True:
     # frames = get_video_frames("./hall_objects_qcif.y4m")
     frames = get_video_frames("./global_motion_estimation/translation.mp4") # 33 frames
 
@@ -23,16 +28,13 @@ if True:
         compensated_pre_update = motion.compute_compensated_frame(previous, parameters)
 
         print(f"original parameters\n{parameters}")
-        updated = motion.handmade_gradient_descent(parameters, previous, current)
-        # updated = motion.handmade_gradient_descent_mp(parameters, previous, current)
+        # updated = motion.handmade_gradient_descent(parameters, previous, current)
+        updated = motion.handmade_gradient_descent_mp(parameters, previous, current)
         print(f"updated parameters\n{updated}")
 
-        # compensated_post_update = motion.compute_compensated_frame_with_log(previous, updated)
         compensated_post_update = motion.compute_compensated_frame_complete(previous, updated)
         diff1 = (np.absolute(compensated_pre_update.astype('int')-current.astype('int'))).astype('uint8')
         diff2 = (np.absolute(compensated_post_update.astype('int')-current.astype('int'))).astype('uint8')
-        np.savetxt("compensated_post_update.txt", compensated_post_update, fmt="%-3d")
-        np.savetxt("diff2.txt", diff2, fmt="%-3d")
         cv2.imshow("current", current)
         cv2.imshow("predicted wout updataed params", compensated_pre_update)
         cv2.imshow("predicted w updataed params", compensated_post_update)
