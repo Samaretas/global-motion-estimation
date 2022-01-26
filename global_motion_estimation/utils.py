@@ -1,4 +1,5 @@
 import cv2
+import time
 
 def get_video_frames(path):
     """
@@ -50,6 +51,15 @@ def draw_motion_vector(frame, motion_field):
 
             cv2.arrowedLine(frame_dummy, (idx_x, idx_y), (int(idx_x + mv_x), int(idx_y + mv_y)), (0, 255, 0), 1)
     return frame_dummy
+
+def timer(func):
+    def wrapper(*args, **kwargs):
+        start = int(time.time())
+        ret = func(*args, **kwargs)
+        end = int(time.time())
+        print(f"Execution of function {func.__name__} in {end-start}s")
+        return ret
+    return wrapper
 
 
 if __name__ == "__main__":

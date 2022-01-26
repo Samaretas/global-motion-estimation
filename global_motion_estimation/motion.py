@@ -1,8 +1,11 @@
 import multiprocessing
 from xmlrpc.client import MAXINT
 import numpy as np
+from utils import timer
 from utils import get_pyramids
 from temp_bbme import Block_matcher
+import cv2
+
 
 N_MAX_ITERATIONS = 50
 
@@ -53,36 +56,136 @@ def motion_model(p, x, y):
     """
     Given the current parameters and the coordinates of a point, computes the compensated coordinates.
     """
-    # logfile = open("log", "a")
     # TODO: change this with a more conscious approximation (<> x.5)
     try:
         x1 = int((p[0] + p[2] * x + p[3] * y) / (p[6] * x + p[7] * y + 1))
         y1 = int((p[1] + p[4] * x + p[5] * y) / (p[6] * x + p[7] * y + 1))
     except:
+        print(f"Denominator problem")
         # print(f"Denominator problem: {(p[6]*x+p[7]*y+1)} cannot be used")
         # print(f"parameters p[6]:{p[6]} p[7]:{p[7]} x:{x} y:{y}")
         x1 = y1 = MAXINT
-    # logfile.write(f"from ({x},{y}) to ({x1},{y1})\n")
-    # logfile.close()
     return (x1, y1)
 
 
-def compute_compensated_frame(pre_frame, parameters):
+@timer
+def compute_compensated_frame_with_log(previous: np.ndarray, parameters: list):
     """
     Computes I' given I and the current parameters.
+
+    Args:
+        previous (np.ndarray): previous frame
+        parameters (list): current parameters
+
+    Returns:
+        np.ndarray: motion-compensated frame
     """
-    compensated = np.copy(pre_frame)
+    # 1. get the list of all coordinates
+    # actually useless
+    # 2. compute the compensated coordinates with the model
+    compensated_coordinates = []
+    with open("log.txt", "w") as outfile:
+        for i in range(previous.shape[0]):
+            for j in range(previous.shape[1]):
+                x1, y1 = motion_model(parameters, i, j)
+                compensated_coordinates.append([x1, y1])
+                s = str(f"[{i}, {j}]") + "=>" + str(f"[{x1}, {y1}]") + "\n"
+                outfile.write(s)
+    # 3. sanitize the coordinates (respect for thr boundaries)
+    for i in range(len(compensated_coordinates)):
+        if compensated_coordinates[i][0] < 0:
+            compensated_coordinates[i][0] = 0
+        elif compensated_coordinates[i][0] >= previous.shape[0]:
+            compensated_coordinates[i][0] = previous.shape[0] - 1
+
+        if compensated_coordinates[i][1] < 0:
+            compensated_coordinates[i][1] = 0
+        elif compensated_coordinates[i][1] >= previous.shape[1]:
+            compensated_coordinates[i][1] = previous.shape[1] - 1
+    # 4. create compensated frame with the compensated coordinates
+    compensated_image = np.copy(previous)
+    for i in range(previous.shape[0]):
+        for j in range(previous.shape[1]):
+            cc = compensated_coordinates.pop(0)  # compensated_coordinate
+            compensated_image[cc[0]][cc[1]] = previous[i][j]
+        name = "./imgs/compensated_image" + str(i).zfill(3) + ".png"
+        cv2.imwrite(name, compensated_image)
+    return compensated_image
+
+
+def compute_compensated_frame_complete(previous: np.ndarray, parameters: list):
+    """
+    Computes I' given I and the current parameters.
+
+    Args:
+        previous (np.ndarray): previous frame
+        parameters (list): current parameters
+
+    Returns:
+        np.ndarray: motion-compensated frame
+    """
+    # 1. get the list of all coordinates
+    # actually useless
+    # 2. compute the compensated coordinates with the model
+    compensated_coordinates = []
+    with open("log.txt", "w") as outfile:
+        for i in range(previous.shape[0]):
+            for j in range(previous.shape[1]):
+                x1, y1 = motion_model(parameters, i, j)
+                compensated_coordinates.append([x1, y1])
+                s = str(f"[{i}, {j}]") + "=>" + str(f"[{x1}, {y1}]") + "\n"
+                outfile.write(s)
+    # 3. sanitize the coordinates (respect for thr boundaries)
+    for i in range(len(compensated_coordinates)):
+        if compensated_coordinates[i][0] < 0:
+            compensated_coordinates[i][0] = 0
+        elif compensated_coordinates[i][0] >= previous.shape[0]:
+            compensated_coordinates[i][0] = previous.shape[0] - 1
+
+        if compensated_coordinates[i][1] < 0:
+            compensated_coordinates[i][1] = 0
+        elif compensated_coordinates[i][1] >= previous.shape[1]:
+            compensated_coordinates[i][1] = previous.shape[1] - 1
+    # 4. create compensated frame with the compensated coordinates
+    compensated_image = np.copy(previous)
+    mask = np.zeros_like(previous, dtype=bool)
+    for i in range(previous.shape[0]):
+        for j in range(previous.shape[1]):
+            cc = compensated_coordinates.pop(0)  # compensated_coordinate
+            compensated_image[cc[0]][cc[1]] = previous[i][j]
+            mask[cc[0]][cc[1]] = True
+    for i in range(1, previous.shape[0]-1):
+        for j in range(1, previous.shape[1]-1):
+            print("")            
+            if not mask[i][j]:
+                compensated_image[i][j] = int(np.sum(compensated_image[i-1:i+2,j-1:j+2])/9)
+    return compensated_image
+
+
+def compute_compensated_frame(previous: np.ndarray, parameters: list):
+    """
+    Computes I' given I and the current parameters.
+
+    Args:
+        previous (np.ndarray): previous frame
+        parameters (list): current parameters
+
+    Returns:
+        np.ndarray: motion-compensated frame
+    """
+    compensated = np.copy(previous)
     for i in range(compensated.shape[0]):
         for j in range(compensated.shape[1]):
             (x1, y1) = motion_model(parameters, i, j)
             try:
-                compensated[x1][y1] = pre_frame[i][j]
+                compensated[x1][y1] = previous[i][j]
             except IndexError:
                 # if out of border, we just use the old value
                 pass
     return compensated
 
 
+@timer
 def first_estimation(precedent, current):
     """
     Computes the parameters for the perspective motion model for the first iteration.
@@ -112,6 +215,7 @@ def parameter_projection(parameters):
     return parameters
 
 
+@timer
 def handmade_gradient_descent(parameters, previous, current):
     """
     0. start with the current estimation of the parameters
@@ -123,15 +227,13 @@ def handmade_gradient_descent(parameters, previous, current):
                 - if delta is positive, we are going in the correct direction, keep 'er goin
                 - if delta is negative, we are heading uphill, change the sign of the update
                 - at each iteration decrease the value of the update
-    Note: here we can apply massively parallelism 
+    Note: here we can apply massively parallelism
     """
-    # fh = open("./log", "w")
     best = parameters
-    for p in range(len(parameters)):
-        # fh.write(f"\nparameter a{p}\n")
-        step = parameters[p]/10
+    for index in range(len(parameters)):
+        step = parameters[index] / 10
         if step == 0:
-            step = 0.01
+            step = 0.001
         compensated = compute_compensated_frame(previous, parameters)
         error_matrix = sum_squared_differences(compensated, current)
         previous_error = np.sum(error_matrix)
@@ -141,70 +243,54 @@ def handmade_gradient_descent(parameters, previous, current):
             error_matrix = sum_squared_differences(compensated, current)
             current_error = np.sum(error_matrix)
             if previous_error >= current_error:
-                delta_ratio = current_error/previous_error
+                delta_ratio = current_error / previous_error
                 if current_error < min_error:
-                    best = parameters
+                    best[index] = parameters[index]
             else:
                 step = -step
-                delta_ratio = previous_error/current_error
-            parameters[p] += step
-            step = step*delta_ratio
-            # fh.write(f"error change from: {previous_error} to: {current_error}, updated step: {step}, current a{p} value: {parameters[p]}\n")
-            previous_error=current_error
-    # fh.close()
+                delta_ratio = previous_error / current_error
+            parameters[index] += step
+            step = step * delta_ratio
+            previous_error = current_error
     return best
 
 
 def grandient_single_parameter(parameters, previous, current, index):
     best = parameters[index]
-    step = parameters[index]/10
+    step = parameters[index] / 10
     if step == 0:
         step = 0.01
     compensated = compute_compensated_frame(previous, parameters)
     error_matrix = sum_squared_differences(compensated, current)
     previous_error = np.sum(error_matrix)
     min_error = previous_error
-    prev_delta = (MAXINT, MAXINT)
     for _ in range(N_MAX_ITERATIONS):
-        new_zero_zero = motion_model(parameters, 0, 0)
-        delta = (0-new_zero_zero[0], 0-new_zero_zero[1])
-        if delta == prev_delta:
-            continue
-        else:
-            prev_delta = delta
         compensated = compute_compensated_frame(previous, parameters)
         error_matrix = sum_squared_differences(compensated, current)
         current_error = np.sum(error_matrix)
         if previous_error >= current_error:
-            delta_ratio = current_error/previous_error
+            delta_ratio = current_error / previous_error
             if current_error < min_error:
                 best = parameters[index]
         else:
             step = -step
-            delta_ratio = previous_error/current_error
+            delta_ratio = previous_error / current_error
         parameters[index] += step
-        step = step*delta_ratio
-        previous_error=current_error
+        step = step * delta_ratio
+        previous_error = current_error
     return best
 
 
+@timer
 def handmade_gradient_descent_mp(parameters, previous, current):
     """
     One process for each parameter.
     """
-    # best = parameters
-    # processes = list()
-    # for p in range(len(parameters)):
-    #     process = Process(target=grandient_single_parameter, args=(parameters, previous, current, p))
-    #     processes.append(process)
-    
-    # for p in range(len(parameters)):
-    #     processes[p].start()
-
-    # for p in range(len(parameters)):
-    #     best[p] = processes[p].join()
     pool = multiprocessing.Pool(processes=len(parameters))
-    args = [(parameters,previous, current, i) for i in range(len(parameters))]
+    args = [
+        (parameters, np.copy(previous), np.copy(current), i)
+        for i in range(len(parameters))
+    ]
     best = pool.starmap(grandient_single_parameter, args)
 
     return best
@@ -230,6 +316,6 @@ def global_motion_estimation(precedent, current):
     for i in range(1, len(prec_pyr)):
         parameters = parameter_projection(parameters)
         parameters = handmade_gradient_descent_mp(parameters, prec_pyr[i], curr_pyr[i])
-    
+
     compensated = compute_compensated_frame(prec_pyr[-1], parameters)
     return compensated
