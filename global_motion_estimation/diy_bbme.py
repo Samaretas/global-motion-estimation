@@ -1,10 +1,12 @@
 import os
+from pydoc import describe
 import cv2
+import argparse
 import itertools
 import numpy as np
 from math import floor
-from scipy.ndimage.filters import gaussian_filter
 from utils import draw_motion_vector, get_video_frames
+from pprint import pprint
 
 
 def get_motion_fied(previous, current, block_size=4, search_window=2, searching_procedure=1, pnorm_distance=0):
@@ -14,13 +16,6 @@ def get_motion_fied(previous, current, block_size=4, search_window=2, searching_
     motion_field = np.empty(
         (int(height / block_size), int(width / block_size), 2))
 
-    # if searching_procedure == 1:
-    #     motion_field = exhaustive_search(previous, current, motion_field, height,
-    #                                      width,  mae, block_size, search_window)
-    # if searching_procedure == 2:
-    #     motion_field = threestep_search(previous, current, motion_field, height,
-    #                                     width,  mae, block_size, search_window)
-    print(motion_field.shape)
     search = searching_procedures[searching_procedure]
     pnorm = pnorm_distances[pnorm_distance]
     motion_field = search(previous, current, motion_field, height,
@@ -46,6 +41,7 @@ def compute_dfd(current_block, anchor_block, pnorm_function):
     diff_block = np.array(current_block, dtype=np.float16) - \
         np.array(anchor_block, dtype=np.float16)
     return pnorm_function(diff_block)
+
 
 def mae(diff_block):
     """
@@ -137,7 +133,7 @@ def exhaustive_search(previous, current, mf, height, width, pnorm_function, bloc
                     min_block = dfd
                     min_x = window_row
                     min_y = window_col
-
+        print(block_row//block_size, block_col//block_size)
         mf[floor(block_row / block_size),
            floor(block_col / block_size), 0] = min_y
         mf[floor(block_row / block_size),
@@ -181,7 +177,7 @@ def threestep_search(previous, current, mf, height, width, pnorm_function, block
         # Executing first step
         for (window_col, window_row) in itertools.product([-step_one, 0, step_one], [-step_one, 0, step_one]):
 
-            print(f"current position {window_row}, {window_col}")
+            # print(f"current position {window_row}, {window_col}")
             # Compute current target block vertices
             top_left_y = block_row + window_row
             top_left_x = block_col + window_col
@@ -227,7 +223,7 @@ def threestep_search(previous, current, mf, height, width, pnorm_function, block
                                         1, top_left_x: bottom_right_x + 1]
                 dfd = compute_dfd(current_block, anchor_block, pnorm_function)
 
-                print(dfd)
+                # print(dfd)
                 # if a new minimum is found, update minimum and save coordinates
                 if dfd < min_block:
                     min_block = dfd
@@ -285,7 +281,6 @@ def twodlog_search(previous, current, mf, height, width, pnorm_function, block_s
         anchor_block = previous[block_row: block_row + block_size,
                                 block_col: block_col + block_size]
 
-
         # initialize block minimum
         min_block = np.infty
 
@@ -319,7 +314,8 @@ def twodlog_search(previous, current, mf, height, width, pnorm_function, block_s
 
                 if (top_left[0] < 0 or top_left[1] < 0 or
                         bottom_right[0] > width - 1 or bottom_right[1] > height - 1):
-                    print(f"\t\t\ttop left: {top_left}, bottom right: {bottom_right}")
+                    print(
+                        f"\t\t\ttop left: {top_left}, bottom right: {bottom_right}")
                     print("\t\t\t!! out of bound !!")
                     out_of_bound = True
                     continue
@@ -346,7 +342,6 @@ def twodlog_search(previous, current, mf, height, width, pnorm_function, block_s
                 # update step size
                 step_size //= 2
             print("")
-            
 
             # update coordinates
             x, y = dx, dy
@@ -368,22 +363,16 @@ def twodlog_search(previous, current, mf, height, width, pnorm_function, block_s
     return mf
 
 
-def diamond_search(previous, current, mf, height, width, pnorm_function, block_size, masked = False):
-
-    motion_map = np.zeros((height, width, 2), dtype='int16')
-    previous_motion = None
+def diamond_search(previous, current, mf, height, width, pnorm_function, block_size, masked=False):
 
     # notice here the approach at borders, at the moment we neglect right and bottom leftovers
-    for (row, col) in itertools.product(range(0, height - block_size, block_size),
-                                        range(0, width - block_size, block_size)):
-    # for row in range(0, height - block_size, block_size):
-    #     for col in range(0, width-block_size, block_size):
-            # iterating over all image positions
-        shift_distance = -1
-        
+    for (row, col) in itertools.product(range(0, height - block_size + 1, block_size),
+                                        range(0, width - block_size + 1, block_size)):
+        # iterating over all image positions
+
         anchor_block = previous[row:row + block_size, col:col + block_size]
         match_position = (row, col)
-        path = [match_position]
+        # path = [match_position]
 
         large_search_pattern_offsets = [
             (0, 0),
@@ -407,7 +396,6 @@ def diamond_search(previous, current, mf, height, width, pnorm_function, block_s
         # large diamond search
         stopping_condition = False
         while not stopping_condition:
-            shift_distance += 1
             min_diff = np.infty
             best_pos = match_position
             for offset in large_search_pattern_offsets:
@@ -424,7 +412,7 @@ def diamond_search(previous, current, mf, height, width, pnorm_function, block_s
                     best_pos = (row2, col2)
 
             stopping_condition = (match_position == best_pos)
-            path.append(best_pos)
+            # path.append(best_pos)
             match_position = (best_pos)
 
         # small diamond search
@@ -442,53 +430,37 @@ def diamond_search(previous, current, mf, height, width, pnorm_function, block_s
                 min_diff = diff
                 best_pos = (row2, col2)
 
-        if best_pos != match_position:
-            shift_distance += 1
-            path.append(best_pos)
+        # if best_pos != match_position:
+        #     # shift_distance += 1
+        #     path.append(best_pos)
 
         # Add motion to all the positions matched, motion is proportional to the amount of shift
-        if shift_distance:
-            motion_map[row, col, 0] = best_pos[0]
-            motion_map[row, col, 1] = best_pos[1]
-            print(row, col)
-            print("")
-            # for position in path:
-            #     motion_map[position[0], position[1], 0] += shift_distance
+        # print(f'updating block {row, col}')
+        # print(f'\tentry in mf is {row//block_size, col//block_size}')
+        # print(f'\tvalue is {best_pos}')
+        mf[row//block_size, col//block_size, 0] = best_pos[0] - \
+            match_position[0]
+        mf[row//block_size, col//block_size, 1] = best_pos[1] - \
+            match_position[1]
+        if (row//block_size == 23): 
+            print('count')
+        # print(mf[row//block_size, col//block_size])
+        # print(row, col)
+        # print("")
 
-    # Blurring
-    # gauss_rounds = 3
-    # for _ in range(gauss_rounds):
-    #     motion_map = cv2.GaussianBlur(
-    #         motion_map, (block_size, block_size), ((block_size - 1) / 6))
-    
-    # Normalization
-    map_max = np.max(motion_map)
-    normalized = motion_map.astype('float32') / map_max
-
-    # Thresholding
-    threshold = 1 / 3
-    def thresher(x): return (x * (255 / map_max)) if x > threshold else 0
-    vthresher = np.vectorize(thresher)
-    normalized = vthresher(normalized)
-    if(masked):
-        if previous_motion is None:
-            previous_motion = (normalized.astype(bool)).astype('uint8')
-        else:
-            temp = normalized.astype(bool)
-            normalized *= previous_motion
-            previous_motion = temp
-
-    return normalized.astype('float32')
+    return mf
 
 
 pnorm_distances = [mae, mse]
-searching_procedures = [exhaustive_search, threestep_search, twodlog_search, diamond_search]
+searching_procedures = [exhaustive_search,
+                        threestep_search, twodlog_search, diamond_search]
 
-if __name__ == '__main__':
-    frames = get_video_frames("./hall_objects_qcif.y4m")
-    idx = 30
 
-    previous = frames[idx-20]
+def main(args):
+    frames = get_video_frames(args.path)
+    idx = 32
+
+    previous = frames[idx-15]
     current = frames[idx]
 
     # print(previous.shape)
@@ -496,20 +468,35 @@ if __name__ == '__main__':
     # cv2.waitKey(0)
 
     motion_field = get_motion_fied(
-        previous, current, block_size=6, searching_procedure=3, search_window=2)
-    print(motion_field)
-    
+        previous, current, block_size=6, searching_procedure=args.searching_procedure, search_window=2)
+    # print(motion_field)
+
+    pprint(motion_field.tolist()[22])
+    print(type(motion_field))
+    print(motion_field.shape)
+    print(motion_field.max)
+
     # mf = np.zeros(
     #     (int(previous.shape[0] / 6), int(previous.shape[1] / 6), 2))
     # mf[0//6,18//6,0] = 12  - 0
     # mf[0//6,18//6,1] =  6 - 18
-    # draw = draw_motion_vector(current, motion_field)
-    # cv2.imwrite(os.path.join('mv_drawing.png'), draw)
+    draw = draw_motion_vector(current, motion_field)
+    cv2.imwrite(os.path.join('mv_drawing.png'), draw)
     # draw = draw_motion_vector(current, mf)
     # cv2.imwrite(os.path.join('fake_drawing.png'), draw)
 
-    # print("motion_field")
-    # print(type(motion_field))
-    # print(motion_field.shape)
-    # print(motion_field.max)
-    # print(motion_field)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Computes motion field between two frames using block matching algorithms')
+    parser.add_argument("-p", "--video-path", dest="path", type=str,
+                        required=True, help="path of the video to analyze")
+    parser.add_argument("-sp", "--searching-procedure", dest="searching_procedure", type=int, default=1,
+                        help="0: Exhaustive search,\n"
+                             "1: Three Step search,\n"
+                             "2: 2D Log search,\n"
+                             "3: Diamond search")
+    args = parser.parse_args()
+
+    print(args)
+    main(args)
