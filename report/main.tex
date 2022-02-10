@@ -1,0 +1,70 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage[hidelinks]{hyperref}
+\usepackage[noabbrev,capitalize]{cleveref}
+\usepackage{array, booktabs, makecell}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\newcommand\norm[1]{\left\lVert#1\right\rVert}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+
+\graphicspath{../}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=black,      
+    citecolor=black,
+    urlcolor=blue,
+    pdfpagemode=FullScreen,
+    }
+
+\begin{document}
+
+\title{An Indirect, Multiscale and Robust Approach to Global Motion Estimation}
+
+\author{\IEEEauthorblockN{Filippo Daniotti}
+\IEEEauthorblockA{\textit{DISI, University of Trento} \\
+Trento, Italy\\
+filippo.daniotti@studenti.unitn.it\\
+\red{numerodimatricoladifilippo}}
+\and
+\IEEEauthorblockN{Samuele Conti}
+\IEEEauthorblockA{\textit{DISI, University of Trento} \\
+Trento, Italy\\
+samuele.conti@studenti.unitn.it\\
+229294}
+}
+
+\maketitle
+
+% add page number
+\thispagestyle{plain}
+\pagestyle{plain}
+
+\begin{abstract}
+The problem of global motion estimation (GME) deals with the separation, in a video sequence, of two different types of motion: the egomotion of the camera recording the video, and the actual motion of the objects recorded. The literature presents a number of possible approaches to the GME problem; here we combine some of the most effective strategies to compute the motion of the camera. We adopt an indirect approach based on a perspective motion model (as \cite{Dufeaux2000}). Following a multi-resolution approach, at the lower-resolution level we use block matching estimation to get a dense motion field, then, at each following (higher-resolution) level we optimize the current parameters of the motion model with gradient descent. During the process of gradient descent the outliers are discarded, in order to get a robust estimation. The final result consists in the optimized list of parameters of the motion model.  
+\end{abstract}
+
+\begin{IEEEkeywords}
+multi-resolution, robust, indirect, global motion estimation, computer vision, \red{check this fil}
+\end{IEEEkeywords}
+
+\input{sections/1_introduction}
+\input{sections/2_global_motion_estimation}
+\input{sections/3_implementation_choices}
+\input{sections/4_results}
+\input{sections/conclusion}
+
+\bibliography{bibliography.bib}{}
+\bibliographystyle{IEEEtran}
+
+\end{document}

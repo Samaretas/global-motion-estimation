@@ -1,5 +1,7 @@
+from cmath import log10, sqrt
 import cv2
 import time
+import numpy as np
 
 
 def get_video_frames(path):
@@ -88,6 +90,25 @@ def timer(func):
         return ret
 
     return wrapper
+
+
+def PSNR(original, noisy):
+    """
+    Computes the peak sognal to noise ratio.
+
+    Args:
+        original (np.ndarray): original image
+        noisy (np.ndarray): noisy image
+
+    Returns:
+        float: the measure of PSNR
+    """
+    mse = np.mean((original.astype("int") - noisy.astype("int")) ** 2)
+    if mse == 0:  # there is no noise
+        return -1
+    max_value = 255.0
+    psnr = 20 * log10(max_value / sqrt(mse))
+    return psnr
 
 
 if __name__ == "__main__":
