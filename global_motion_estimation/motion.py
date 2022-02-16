@@ -1,3 +1,4 @@
+from distutils.log import error
 import multiprocessing
 from xmlrpc.client import MAXINT
 import numpy as np
@@ -5,9 +6,12 @@ from utils import timer
 from utils import get_pyramids
 from temp_bbme import Block_matcher
 import cv2
+from diy_bbme import get_motion_fied
 
 
 N_MAX_ITERATIONS = 50
+DIRECT_INVERSE = True
+
 
 
 def sum_squared_differences(previous, current):
@@ -42,9 +46,13 @@ def dense_motion_estimation(previous, current):
     Returns:
         motion_field (np.ndarray): estimated dense motion field
     """
-    BM = Block_matcher(block_size=6, search_range=2, pixel_acc=1, searching_procedure=2)
+    motion_field = get_motion_fied(
+        previous, current, block_size=6, searching_procedure=3, search_window=2
+    )  # diamond search
 
-    _, motion_field = BM.get_motion_field(previous, current)
+    # BM = Block_matcher(block_size=6, search_range=2, pixel_acc=1, searching_procedure=2)
+    # _, motion_field = BM.get_motion_field(previous, current)
+
     return motion_field
 
 
@@ -311,6 +319,134 @@ def handmade_gradient_descent_mp(parameters, previous, current):
 
 
 @timer
+def gradient_descent(parameters, previous, current):
+    """
+    Computing gradient descent as from Dufaux 2000.
+
+    Args:
+        parameters (list):  parameters of the model of motion
+        previous (np.ndarray):  previous frame
+        current (np.ndarray):  current frame
+
+    Returns:
+        best (list): the optimized parameter vector for the model of motion
+    """
+    compensated = compute_compensated_frame(previous, parameters)
+    error_matrix = sum_squared_differences(compensated, current)
+    # iterate over all the pixels, compute derivative b_k ~ e de/da_k
+    a0, a1, a2, a3, a4, a5, a6, a7 = parameters
+    bki = [0.0 for _ in parameters]
+    b = np.zeros(shape=(len(bki),), dtype=np.float64)
+    H = np.zeros(shape=(len(bki), len(bki)), dtype=np.float64)
+    # double loop to compute derivatives
+    for xi in range(1, previous.shape[0]):
+        for yi in range(1, previous.shape[1]):
+            xj, yj = motion_model(parameters, xi, yi)
+            if (
+                (xj < 2)
+                or (xj > previous.shape[0] - 2)
+                or (yj < 2)
+                or (yj > previous.shape[1] - 2)
+            ):
+                # sanitize values for xj and yj (should be able to index +1 and -1) and should be able to divide for xj-1 and xj+1
+                for k in range(len(parameters)):
+                    bki[k] = 0
+            else:
+                # compute delta error on x direction, dex = err(xj+1) - err(xj-1)
+                error_xj_plus_1 = int(previous[xj + 1][yj]) - int(current[xi][yi])
+                error_xj_minus_1 = int(previous[xj - 1][yj]) - int(current[xi][yi])
+                dex = error_xj_plus_1 - error_xj_minus_1
+                # compute delta error on y direction, dey = err(xj+1) - err(xj-1)
+                error_yj_plus_1 = int(previous[xj][yj + 1]) - int(current[xi][yi])
+                error_yj_minus_1 = int(previous[xj][yj - 1]) - int(current[xi][yi])
+                dey = error_yj_plus_1 - error_yj_minus_1
+
+                # compute delta_a0 to obtain xj+1 instead of xi
+                a0_plus = (a6 * xi + a7 * yi + 1) * (xj + 1) - (a2 * xi + a3 * yi)
+                # compute delta_a0 to obtain xj-1 instead of xi
+                a0_minus = (a6 * xi + a7 * yi + 1) * (xj - 1) - (a2 * xi + a3 * yi)
+                # compute delta_a0 necessary to pass from xj-1 to xj+1
+                da0 = a0_plus - a0_minus
+
+                a1_plus = (a6 * xi + a7 * yi + 1) * (yj + 1) - (a4 * xi + a5 * yi)
+                a1_minus = (a6 * xi + a7 * yi + 1) * (yj - 1) - (a4 * xi + a5 * yi)
+                da1 = a1_plus - a1_minus
+
+                a2_plus = ((a6 * xi + a7 * yi + 1) * (xj + 1) - (a3 * yi + a0)) / xi
+                a2_minus = ((a6 * xi + a7 * yi + 1) * (xj - 1) - (a3 * yi + a0)) / xi
+                da2 = a2_plus - a2_minus
+
+                a3_plus = ((a6 * xi + a7 * yi + 1) * (xj + 1) - (a2 * xi + a0)) / yi
+                a3_minus = ((a6 * xi + a7 * yi + 1) * (xj - 1) - (a3 * xi + a0)) / yi
+                da3 = a3_plus - a3_minus
+
+                a4_plus = ((a6 * xi + a7 * yi + 1) * (yj + 1) - (a5 * yi + a1)) / xi
+                a4_minus = ((a6 * xi + a7 * yi + 1) * (yj - 1) - (a5 * yi + a1)) / xi
+                da4 = a4_plus - a4_minus
+
+                a5_plus = ((a6 * xi + a7 * yi + 1) * (yj + 1) - (a4 * xi + a1)) / yi
+                a5_minus = ((a6 * xi + a7 * yi + 1) * (yj - 1) - (a4 * xi + a1)) / yi
+                da5 = a5_plus - a5_minus
+
+                a6_plus_x = ((a0 + a2 * xi + a3 * yi) / (xj + 1) - a7 * yi - 1) / xi
+                a6_plus_y = ((a1 + a4 * xi + a5 * yi) / (yj + 1) - a7 * yi - 1) / xi
+                a6_minus_x = ((a0 + a2 * xi + a3 * yi) / (xj - 1) - a7 * yi - 1) / xi
+                a6_minus_y = ((a1 + a4 * xi + a5 * yi) / (yj - 1) - a7 * yi - 1) / xi
+                da6_x = a6_plus_x - a6_minus_x
+                da6_y = a6_plus_y - a6_minus_y
+                da6 = da6_x
+                derr6 = dex
+                if da6_x < da6_y:
+                    da6 = da6_y
+                    derr6 = dey
+
+                a7_plus_x = ((a0 + a2 * xi + a3 * yi) / (xj + 1) - a6 * xi - 1) / yi
+                a7_plus_y = ((a1 + a4 * xi + a5 * yi) / (yj + 1) - a6 * xi - 1) / yi
+                a7_minus_x = ((a0 + a2 * xi + a3 * yi) / (xj - 1) - a6 * xi - 1) / yi
+                a7_minus_y = ((a1 + a4 * xi + a5 * yi) / (yj - 1) - a6 * xi - 1) / yi
+                da7_x = a7_plus_x - a7_minus_x
+                da7_y = a7_plus_y - a7_minus_y
+                da7 = da7_x
+                derr7 = dex
+                if da7_x < da7_y:
+                    da7 = da7_y
+                    derr7 = dey
+
+                # append derivatives to respective positions in the parameter derivatives vector
+                bki[0] = dex / da0
+                bki[1] = dey / da1
+                bki[2] = dex / da2
+                bki[3] = dex / da3
+                bki[4] = dey / da4
+                bki[5] = dey / da5
+                bki[6] = derr6 / da6
+                bki[7] = derr7 / da7
+            # computing b_k and H_kl
+            for k in range(len(bki)):
+                b[k] += error_matrix[xi][yi] * bki[k]
+                for l in range(len(bki)):
+                    H[k][l] += bki[k] * bki[l]
+    b = -b
+    old = np.fromiter(parameters, dtype=np.float64)
+    if DIRECT_INVERSE:
+        new_parameters = old + np.matmul(np.linalg.inv(H), b)
+    else:
+        u, s, vt = np.linalg.svd(H, full_matrices=True)
+        sinv = np.copy(s)
+        for i in range(len(sinv)):
+            if sinv[i] != 0:
+                sinv[i] = 1/sinv[i]
+        S = np.identity(n=len(parameters), dtype=np.float64)
+        for i in range(len(sinv)):
+            S[i][i] = sinv[i]
+        Hinv = np.matmul(
+            np.matmul(np.transpose(vt), S), np.transpose(u)
+        )
+        new_parameters = old + np.matmul(Hinv, b)
+    return new_parameters
+
+
+@timer
 def global_motion_estimation(precedent, current):
     """
     Method to perform the global motion estimation.
@@ -325,18 +461,20 @@ def global_motion_estimation(precedent, current):
 
     # first (coarse) level estimation
     parameters = first_estimation(prev_pyr[0], curr_pyr[0])
-    parameters = handmade_gradient_descent_mp(parameters, prev_pyr[0], curr_pyr[0])
+    # parameters = handmade_gradient_descent_mp(parameters, prev_pyr[0], curr_pyr[0])
+    parameters = gradient_descent(parameters, prev_pyr[0], curr_pyr[0])
 
     # all the other levels
     for i in range(1, len(prev_pyr)):
+        print("updating parameters for next level ...")
         parameters = parameter_projection(parameters)
-        parameters = handmade_gradient_descent_mp(parameters, prev_pyr[i], curr_pyr[i])
+        # parameters = handmade_gradient_descent_mp(parameters, prev_pyr[i], curr_pyr[i])
+        parameters = gradient_descent(parameters, prev_pyr[i], curr_pyr[i])
         print(f"Updated parameters: {parameters}")
         s = f"Compensated image at layer {i}"
         print(s)
         compensated = compute_compensated_frame_complete(prev_pyr[i], parameters)
         cv2.imshow(s, compensated)
-        cv2.imwrite(s + ".png", compensated)
         cv2.waitKey(1)
 
     compensated = compute_compensated_frame(prev_pyr[-1], parameters)
