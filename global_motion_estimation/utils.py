@@ -1,4 +1,5 @@
 from cmath import log10, sqrt
+from tkinter import image_names
 import cv2
 import time
 import numpy as np
@@ -111,9 +112,26 @@ def PSNR(original, noisy):
     return psnr
 
 
+def create_video_from_frames(frame_path, num_frames, video_name, fps=30):
+    import os
+    img_array = []
+    img_names = []
+    for i in range(num_frames):
+        s = str(i)+"-"+str(i+1)+".png"
+        img_names.append(s)
+    for img in img_names:
+        image = cv2.imread(frame_path+img)
+        img_array.append(image)
+    height, width, layers = img_array[0].shape
+    video = cv2.VideoWriter(video_name, 0, fps, (width,height))
+
+    for image in img_array:
+        video.write(image)
+
+    cv2.destroyAllWindows()
+    video.release()
+
+
 if __name__ == "__main__":
-    frames = get_video_frames("./hall_objects_qcif.y4m")
-    pyrs = get_pyramids(frames[30])
-    for pyramid in pyrs:
-        cv2.imshow("Pyr", pyramid)
-        cv2.waitKey(0)
+    create_video_from_frames("./results/translation_mp4/diff_comp_prev/", 32, "tangerine_diff_comp_prev.avi", 30)
+    create_video_from_frames("./results/translation_mp4/diff_curr_prev/", 32, "tangerine_diff_curr_prev.avi", 30)

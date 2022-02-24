@@ -1,18 +1,16 @@
-from distutils.log import error
 import multiprocessing
 from xmlrpc.client import MAXINT
 import numpy as np
 from utils import timer
 from utils import get_pyramids
 from temp_bbme import Block_matcher
-import cv2
 from diy_bbme import get_motion_fied
 
 
 N_MAX_ITERATIONS = 50
 DIRECT_INVERSE = True
 
-
+np.seterr(all='raise')
 
 def sum_squared_differences(previous, current):
     """
@@ -171,7 +169,6 @@ def compute_compensated_frame(previous: np.ndarray, parameters: list):
     return compensated
 
 
-@timer
 def first_estimation(precedent, current):
     """
     Computes the parameters for the perspective motion model for the first iteration.
@@ -318,7 +315,6 @@ def handmade_gradient_descent_mp(parameters, previous, current):
     return best
 
 
-@timer
 def gradient_descent(parameters, previous, current):
     """
     Computing gradient descent as from Dufaux 2000.
@@ -377,7 +373,7 @@ def gradient_descent(parameters, previous, current):
                 da2 = a2_plus - a2_minus
 
                 a3_plus = ((a6 * xi + a7 * yi + 1) * (xj + 1) - (a2 * xi + a0)) / yi
-                a3_minus = ((a6 * xi + a7 * yi + 1) * (xj - 1) - (a3 * xi + a0)) / yi
+                a3_minus = ((a6 * xi + a7 * yi + 1) * (xj - 1) - (a2 * xi + a0)) / yi
                 da3 = a3_plus - a3_minus
 
                 a4_plus = ((a6 * xi + a7 * yi + 1) * (yj + 1) - (a5 * yi + a1)) / xi
@@ -416,14 +412,21 @@ def gradient_descent(parameters, previous, current):
                 bki[0] = dex / da0
                 bki[1] = dey / da1
                 bki[2] = dex / da2
-                bki[3] = dex / da3
+                try:
+                    bki[3] = dex / da3
+                except:
+                    bki[3] = 0
                 bki[4] = dey / da4
                 bki[5] = dey / da5
                 bki[6] = derr6 / da6
                 bki[7] = derr7 / da7
             # computing b_k and H_kl
             for k in range(len(bki)):
+                # if np.isinf(bki[k]) or np.isnan(bki[k]):
+                #     bki[k]=0
                 b[k] += error_matrix[xi][yi] * bki[k]
+                # if np.isnan(b[k]):
+                #     print("AAAAAAA")
                 for l in range(len(bki)):
                     H[k][l] += bki[k] * bki[l]
     b = -b
@@ -461,21 +464,17 @@ def global_motion_estimation(precedent, current):
 
     # first (coarse) level estimation
     parameters = first_estimation(prev_pyr[0], curr_pyr[0])
-    # parameters = handmade_gradient_descent_mp(parameters, prev_pyr[0], curr_pyr[0])
     parameters = gradient_descent(parameters, prev_pyr[0], curr_pyr[0])
 
     # all the other levels
     for i in range(1, len(prev_pyr)):
-        print("updating parameters for next level ...")
+        # print("updating parameters for next level ...")
         parameters = parameter_projection(parameters)
-        # parameters = handmade_gradient_descent_mp(parameters, prev_pyr[i], curr_pyr[i])
         parameters = gradient_descent(parameters, prev_pyr[i], curr_pyr[i])
-        print(f"Updated parameters: {parameters}")
-        s = f"Compensated image at layer {i}"
-        print(s)
+        # print(f"Updated parameters: {parameters}")
         compensated = compute_compensated_frame_complete(prev_pyr[i], parameters)
-        cv2.imshow(s, compensated)
-        cv2.waitKey(1)
+        # cv2.imshow(s, compensated)
+        # cv2.waitKey(1)
 
     compensated = compute_compensated_frame(prev_pyr[-1], parameters)
     return compensated

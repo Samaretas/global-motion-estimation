@@ -442,8 +442,8 @@ def diamond_search(previous, current, mf, height, width, pnorm_function, block_s
             match_position[0]
         mf[row//block_size, col//block_size, 1] = best_pos[1] - \
             match_position[1]
-        if (row//block_size == 23): 
-            print('count')
+        # if (row//block_size == 23): 
+            # print('count')
         # print(mf[row//block_size, col//block_size])
         # print(row, col)
         # print("")
