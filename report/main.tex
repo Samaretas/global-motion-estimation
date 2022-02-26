@@ -35,7 +35,7 @@
 \IEEEauthorblockA{\textit{DISI, University of Trento} \\
 Trento, Italy\\
 filippo.daniotti@studenti.unitn.it\\
-\red{numerodimatricoladifilippo}}
+232087}
 \and
 \IEEEauthorblockN{Samuele Conti}
 \IEEEauthorblockA{\textit{DISI, University of Trento} \\
@@ -51,11 +51,11 @@ samuele.conti@studenti.unitn.it\\
 \pagestyle{plain}
 
 \begin{abstract}
-The problem of global motion estimation (GME) deals with the separation, in a video sequence, of two different types of motion: the egomotion of the camera recording the video, and the actual motion of the objects recorded. The literature presents a number of possible approaches to the GME problem; here we combine some of the most effective strategies to compute the motion of the camera. We adopt an indirect approach based on a perspective motion model (as \cite{Dufeaux2000}). Following a multi-resolution approach, at the lower-resolution level we use block matching estimation to get a dense motion field, then, at each following (higher-resolution) level we optimize the current parameters of the motion model with gradient descent. During the process of gradient descent the outliers are discarded, in order to get a robust estimation. The final result consists in the optimized list of parameters of the motion model.  
+The problem of global motion estimation (GME) deals with the separation, in a video sequence, of two different types of motion: the \emph{egomotion} of the camera recording the video, and the actual motion of the objects recorded. The literature presents a number of possible approaches to the GME problem; here, we aim to combine some of the most effective strategies to compute the motion of the camera. We adopt an indirect approach based on a perspective motion model (as \cite{Dufeaux2000}). Following a multi-resolution approach, at the lower-resolution level, we use block matching estimation to get a dense motion field; then, at each following (higher-resolution) level we optimize the current parameters of the motion model with gradient descent. During the process of gradient descent the outliers are discarded, in order to get a robust estimation. The final result consists in the optimized list of parameters of the motion model.  
 \end{abstract}
 
 \begin{IEEEkeywords}
-multi-resolution, robust, indirect, global motion estimation, computer vision, \red{check this fil}
+multi-resolution, robust, indirect, global motion estimation, computer vision, video processing
 \end{IEEEkeywords}
 
 \input{sections/1_introduction}
