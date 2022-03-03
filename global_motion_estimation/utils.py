@@ -53,13 +53,13 @@ def get_pyramids(original_image, levels=3):
 def draw_motion_vector(frame, motion_field):
     height, width = frame.shape
     frame_dummy = frame.copy()
-    mv_h, mv_w, _ = motion_field.shape
-    b_size = int(height / mv_h)
+    mf_height, mf_width, _ = motion_field.shape
+    bs = height // mf_height
 
-    for y in range(0, mv_h):
-        for x in range(0, mv_w):
-            idx_x = x * b_size
-            idx_y = y * b_size
+    for y in range(0, mf_height):
+        for x in range(0, mf_width):
+            idx_x = x * bs + bs//2
+            idx_y = y * bs + bs//2
             mv_x, mv_y = motion_field[y][x]
 
             cv2.arrowedLine(
@@ -68,6 +68,7 @@ def draw_motion_vector(frame, motion_field):
                 (int(idx_x + mv_x), int(idx_y + mv_y)),
                 (0, 255, 0),
                 1,
+                line_type=cv2.LINE_AA
             )
     return frame_dummy
 
