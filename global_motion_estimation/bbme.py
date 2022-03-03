@@ -80,7 +80,7 @@ def compute_current_target_block_corners(br, bl, wr, wc, bs):
     return (top_left_x, top_left_y), (bottom_right_x, bottom_right_y)
 
 
-def exhaustive_search(previous, current, mf, height, width, pnorm_function, block_size=4, search_window=2):
+def exhaustive_search(previous, current, mf, height, width, pnorm_distance, block_size=4, search_window=2):
     """
     exhaustive_search 
 
@@ -90,7 +90,7 @@ def exhaustive_search(previous, current, mf, height, width, pnorm_function, bloc
         mf (np.ndarray): motion field to return
         height (int): rows of the frame
         width (int): columns of the frame
-        pnorm_function (func): dfd function to use
+        pnorm_distance (int): dfd function to use
         block_size (int, optional): size of each block (in pixels). Defaults to 4.
         search_window (int, optional): sized of the search window (in pixels). Defaults to 2.
 
@@ -113,8 +113,10 @@ def exhaustive_search(previous, current, mf, height, width, pnorm_function, bloc
                                                           range(-search_window, (search_window + block_size))):
             # check if block centered at the current pixel in the search window
             # falls entirely  within the image grid
-            top_left_y, top_left_x = block_row + window_row, block_col + window_col
-            bottom_right_y, bottom_right_x = top_left_y + block_size - 1, top_left_x + block_size - 1
+            top_left_y = block_row + window_row
+            top_left_x = block_col + window_col
+            bottom_right_y = block_row + window_row + block_size - 1
+            bottom_right_x = block_col + window_col + block_size - 1
 
             if not (top_left_y < 0 or
                     top_left_x < 0 or
@@ -123,7 +125,7 @@ def exhaustive_search(previous, current, mf, height, width, pnorm_function, bloc
                 # get the block centered at the current pixel in the search window from the current frame
                 current_block = current[top_left_y: bottom_right_y + 1,
                                         top_left_x: bottom_right_x + 1]
-                dfd = compute_dfd(current_block, anchor_block, pnorm_function)
+                dfd = compute_dfd(current_block, anchor_block, pnorm_distance)
 
                 # if a new minimum is found, update minimum and save coordinates
                 if dfd < min_block:
@@ -140,7 +142,7 @@ def exhaustive_search(previous, current, mf, height, width, pnorm_function, bloc
     return mf
 
 
-def threestep_search(previous, current, mf, height, width, pnorm_function, block_size=4, search_window=2):
+def threestep_search(previous, current, mf, height, width, pnorm_distance, block_size=4, search_window=2):
     """
     threestep_search 
 
@@ -150,7 +152,7 @@ def threestep_search(previous, current, mf, height, width, pnorm_function, block
         mf (np.ndarray): motion field to compute
         height (int): rows of the frame
         width (int): columns of the frame
-        pnorm_function (func): dfd function to use
+        pnorm_distance (int): dfd function to use
         block_size (int, optional): size of each block (in pixels). Defaults to 4.
         search_window (int, optional): sized of the search window (in pixels). Defaults to 2.
 
@@ -161,6 +163,10 @@ def threestep_search(previous, current, mf, height, width, pnorm_function, block
     step_one = int(((2 * search_window) + block_size) / 3)
     step_two = int(((2 * search_window) + block_size) / 5)
     step_three = int(((2 * search_window) + block_size) / 10)
+    # step_one = 4
+    # step_two = 2
+    # step_three = 1
+    # print(step_one, step_two, step_three)
     dx, dy = 0, 0
     for (block_row, block_col) in itertools.product(range(0, height - (block_size - 1), block_size),
                                                     range(0, width - (block_size - 1), block_size)):
@@ -190,7 +196,7 @@ def threestep_search(previous, current, mf, height, width, pnorm_function, block
                 current_block = current[top_left_y: bottom_right_y + 1,
                                         top_left_x: bottom_right_x + 1]
 
-                dfd = compute_dfd(current_block, anchor_block, pnorm_function)
+                dfd = compute_dfd(current_block, anchor_block, pnorm_distance)
 
                 # if a new minimum is found, update minimum and save coordinates
                 if dfd < min_block:
@@ -201,6 +207,9 @@ def threestep_search(previous, current, mf, height, width, pnorm_function, block
         # Compute new origin
         block_row_step_2 = block_row + dx
         block_col_step_2 = block_col + dy
+        # reinitialize minimum
+        min_block = np.infty
+        
 
         # Executing second step
         for (window_col, window_row) in itertools.product([-step_two, 0, step_two], [-step_two, 0, step_two]):
@@ -216,20 +225,24 @@ def threestep_search(previous, current, mf, height, width, pnorm_function, block
                     bottom_right_x > width - 1):
 
                 # get the block centered at the current pixel in the search window from the4 current frame
-                current_block = current[top_left_y: bottom_right_y +
-                                        1, top_left_x: bottom_right_x + 1]
-                dfd = compute_dfd(current_block, anchor_block, pnorm_function)
+                current_block = current[top_left_y: bottom_right_y + 1,
+                                        top_left_x: bottom_right_x + 1]
+                dfd = compute_dfd(current_block, anchor_block, pnorm_distance)
 
                 # print(dfd)
                 # if a new minimum is found, update minimum and save coordinates
                 if dfd < min_block:
                     min_block = dfd
-                    dx = window_row
-                    dy = window_col
+                    tmp_dx = window_row
+                    tmp_dy = window_col
+
+        dx, dy = tmp_dx, tmp_dy
 
         # Compute new origin
         block_row_step_3 = block_row_step_2 + dx
         block_col_step_3 = block_col_step_2 + dy
+        # initialize minimum
+        min_block = np.infty
 
         # Executing third step
         for (window_col, window_row) in itertools.product([-step_three, 0, step_three], [-step_three, 0, step_three]):
@@ -245,24 +258,27 @@ def threestep_search(previous, current, mf, height, width, pnorm_function, block
                     bottom_right_x > width - 1):
 
                 # get the block centered at the current pixel in the search window from the4 current frame
-                current_block = current[top_left_y: bottom_right_y +
-                                        1, top_left_x: bottom_right_x + 1]
-                dfd = compute_dfd(current_block, anchor_block, pnorm_function)
+                current_block = current[top_left_y: bottom_right_y + 1,
+                                        top_left_x: bottom_right_x + 1]
+                dfd = compute_dfd(current_block, anchor_block, pnorm_distance)
 
                 # if a new minimum is found, update minimum and save coordinates
                 if dfd < min_block:
                     min_block = dfd
-                    dx = window_row
-                    dy = window_col
+                    tmp_dx = window_row
+                    tmp_dy = window_col
 
-        mf[floor(block_row / block_size),
-           floor(block_col / block_size), 1] = dy
-        mf[floor(block_row / block_size),
-           floor(block_col / block_size), 0] = dx
+        
+        dx, dy = tmp_dx, tmp_dy
 
+        mf[block_row // block_size,
+           block_col // block_size, 1] = dy
+        mf[block_row // block_size,
+           block_col // block_size, 0] = dx
+
+    print('3steps done')
     return mf
 
-    # print('3steps')
 
 
 def twodlog_search(previous, current, mf, height, width, pnorm_function, block_size=4, search_window=2):
@@ -360,7 +376,26 @@ def twodlog_search(previous, current, mf, height, width, pnorm_function, block_s
     return mf
 
 
-def diamond_search(previous, current, mf, height, width, pnorm_function, block_size, masked=False):
+def diamond_search(previous, current, mf, height, width, pnorm_distance, block_size, masked=False):
+
+    large_search_pattern_offsets = [
+        (0, 0),
+        (2, 0),
+        (1, 1),
+        (0, 2),
+        (-1, 1),
+        (-2, 0),
+        (-1, -1),
+        (0, -2),
+        (1, -1),
+    ]
+    small_search_pattern_offsets = [
+        (0, 0),
+        (1, 0),
+        (0, 1),
+        (-1, 0),
+        (0, -1),
+    ]
 
     # notice here the approach at borders, at the moment we neglect right and bottom leftovers
     for (row, col) in itertools.product(range(0, height - block_size + 1, block_size),
@@ -369,26 +404,7 @@ def diamond_search(previous, current, mf, height, width, pnorm_function, block_s
 
         anchor_block = previous[row:row + block_size, col:col + block_size]
         match_position = (row, col)
-        # path = [match_position]
 
-        large_search_pattern_offsets = [
-            (0, 0),
-            (2, 0),
-            (1, 1),
-            (0, 2),
-            (-1, 1),
-            (-2, 0),
-            (-1, -1),
-            (0, -2),
-            (1, -1)
-        ]
-        small_search_pattern_offsets = [
-            (0, 0),
-            (1, 0),
-            (0, 1),
-            (-1, 0),
-            (0, -1)
-        ]
 
         # large diamond search
         stopping_condition = False
@@ -396,54 +412,42 @@ def diamond_search(previous, current, mf, height, width, pnorm_function, block_s
             min_diff = np.infty
             best_pos = match_position
             for offset in large_search_pattern_offsets:
-                (row2, col2) = (match_position[0] + offset[0],
-                                match_position[1] + offset[1])
+                (row2, col2) = (match_position[0] + offset[0]*2,
+                                match_position[1] + offset[1]*2)
+                # wrap around a try catch block
                 row2 = min(max(row2, 0), height - block_size - 1)
                 col2 = min(max(col2, 0), width - block_size - 1)
                 block = current[row2:row2 + block_size,
                                 col2:col2 + block_size]
-                diff = compute_dfd(anchor_block, block, pnorm_function)
+                diff = compute_dfd(anchor_block, block, pnorm_distance)
 
                 if diff < min_diff:
                     min_diff = diff
                     best_pos = (row2, col2)
 
             stopping_condition = (match_position == best_pos)
-            # path.append(best_pos)
             match_position = (best_pos)
+
 
         # small diamond search
         min_diff = np.infty
         for offset in small_search_pattern_offsets:
-            (row2, col2) = (match_position[0] + offset[1],
-                            match_position[1] + offset[0])
+            (row2, col2) = (match_position[0] + offset[1]*2,
+                            match_position[1] + offset[0]*2)
             row2 = min(max(row2, 0), height - block_size - 1)
             col2 = min(max(col2, 0), width - block_size - 1)
             block = current[row2:row2 + block_size,
                             col2:col2 + block_size]
-            diff = compute_dfd(anchor_block, block, pnorm_function)
+            diff = compute_dfd(anchor_block, block, pnorm_distance)
 
             if diff < min_diff:
                 min_diff = diff
                 best_pos = (row2, col2)
 
-        # if best_pos != match_position:
-        #     # shift_distance += 1
-        #     path.append(best_pos)
-
-        # Add motion to all the positions matched, motion is proportional to the amount of shift
-        # print(f'updating block {row, col}')
-        # print(f'\tentry in mf is {row//block_size, col//block_size}')
-        # print(f'\tvalue is {best_pos}')
         mf[row//block_size, col//block_size, 0] = best_pos[0] - \
-            match_position[0]
+            row
         mf[row//block_size, col//block_size, 1] = best_pos[1] - \
-            match_position[1]
-        # if (row//block_size == 23): 
-            # print('count')
-        # print(mf[row//block_size, col//block_size])
-        # print(row, col)
-        # print("")
+            col
 
     return mf
 
@@ -455,7 +459,7 @@ searching_procedures = [exhaustive_search,
 
 def main(args):
     frames = get_video_frames(args.path)
-    idx = 20
+    idx = 45
 
     previous = frames[idx-1]
     current = frames[idx]
@@ -466,7 +470,7 @@ def main(args):
 
     motion_field = get_motion_fied(
         previous, current, block_size=args.block_size, searching_procedure=args.searching_procedure, search_window=args.search_window)
-    # print(motion_field)
+    # pprint(motion_field.tolist())
 
     # pprint(motion_field.tolist()[22])
     # print(type(motion_field))
