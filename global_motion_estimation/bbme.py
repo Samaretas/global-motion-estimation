@@ -1,12 +1,11 @@
 import os
-import cv2
 import argparse
 import itertools
-import numpy as np
-from math import floor
-from utils import draw_motion_field, get_video_frames
-from pprint import pprint
 
+import cv2
+import numpy as np
+
+from utils import draw_motion_field, get_video_frames
 
 def get_motion_fied(previous, current, block_size=4, search_window=2, searching_procedure=1, pnorm_distance=0):
     height = previous.shape[0]
@@ -21,32 +20,36 @@ def get_motion_fied(previous, current, block_size=4, search_window=2, searching_
     return motion_field
 
 
-def compute_dfd(current_block, anchor_block, pnorm_function):
+def compute_dfd(block_1, block_2, pnorm_index=0):
     """
     compute_dfd 
     Computes a given pnorm distance of two np arrays
 
     Args:
-        current_block (np.ndarray): [description]
-        anchor_block (np.ndarray): [description]
-        pnorm_function (func): name of the function to use
+        block_1 (np.ndarray): first block
+        block_2 (np.ndarray): the other block
+        pnorm_index (func): index of the distance to use:
+            0: mae
+            1: mse
+            Defaults to 0 (mae)
+
 
     Returns:
         float: value of the dfd
     """
 
-    assert current_block.shape == anchor_block.shape
-    pnorm = pnorm_distances[pnorm_function]
-    diff_block = np.array(current_block, dtype=np.float16) - \
-        np.array(anchor_block, dtype=np.float16)
+    assert block_1.shape == block_2.shape
+    pnorm = pnorm_distances[pnorm_index]
+    diff_block = np.array(block_1, dtype=np.float16) - \
+        np.array(block_2, dtype=np.float16)
     return pnorm(diff_block)
 
 
 def mae(diff_block):
     """
     mae 
-    Given a np array, returns the sum of absolute value
-    (for 1-norm distance)
+    Given a np array, returns the sum of of the 
+    minimum absolute error (1-norm distance)
 
     Args:
         diff_block (np.ndarray): the block to sum
@@ -60,8 +63,8 @@ def mae(diff_block):
 def mse(diff_block):
     """
     mse 
-    Given a np array, returns the sum of eucledian distance
-    (for 2-norm distance)
+    Given a np array, returns the sum of of the 
+    minimum squared  error (2-norm distance)
 
     Args:
         diff_block (np.ndarray): the block to sum
@@ -80,9 +83,10 @@ def compute_current_target_block_corners(br, bl, wr, wc, bs):
     return (top_left_y, top_left_x), (bottom_right_y, bottom_right_x)
 
 
-def exhaustive_search(previous, current, mf, height, width, pnorm_distance, block_size=4, search_window=2):
+def exhaustive_search(previous, current, mf, height, width, pnorm_distance=0, block_size=4, search_window=2):
     """
     exhaustive_search 
+    Computes the motion field with the Exhaustive BBME algorithm
 
     Args:
         previous (np.ndarray): previous frame
@@ -90,14 +94,13 @@ def exhaustive_search(previous, current, mf, height, width, pnorm_distance, bloc
         mf (np.ndarray): motion field to return
         height (int): rows of the frame
         width (int): columns of the frame
-        pnorm_distance (int): dfd function to use
+        pnorm_distance (int, optional): index of the dfd function to use. Defaults to 0 (mae)
         block_size (int, optional): size of each block (in pixels). Defaults to 4.
         search_window (int, optional): sized of the search window (in pixels). Defaults to 2.
 
     Returns:
         np.ndarray: motion field
     """
-    # print(block_size, search_window, height, width)
     # iterates for all blocks of the current frames
     for (block_row, block_col) in itertools.product(range(0, height - (block_size - 1), block_size),
                                                     range(0, width - (block_size - 1), block_size)):
@@ -115,13 +118,14 @@ def exhaustive_search(previous, current, mf, height, width, pnorm_distance, bloc
             # falls entirely  within the image grid
             top_left_y = block_row + window_row
             top_left_x = block_col + window_col
-            bottom_right_y = block_row + window_row + block_size - 1
-            bottom_right_x = block_col + window_col + block_size - 1
+            bottom_right_y = top_left_y + block_size - 1
+            bottom_right_x = top_left_x + block_size - 1
 
             if not (top_left_y < 0 or
                     top_left_x < 0 or
                     bottom_right_y > height - 1 or
                     bottom_right_x > width - 1):
+
                 # get the block centered at the current pixel in the search window from the current frame
                 current_block = current[top_left_y: bottom_right_y + 1,
                                         top_left_x: bottom_right_x + 1]
@@ -130,21 +134,21 @@ def exhaustive_search(previous, current, mf, height, width, pnorm_distance, bloc
                 # if a new minimum is found, update minimum and save coordinates
                 if dfd < min_block:
                     min_block = dfd
-                    min_x = window_row
-                    min_y = window_col
-        # print(block_row//block_size, block_col//block_size)
+                    dx = window_row
+                    dy = window_col
+                    
         mf[block_row // block_size,
-           block_col // block_size, 0] = min_y
+           block_col // block_size, 0] = dy
         mf[block_row // block_size,
-           block_col // block_size, 1] = min_x
+           block_col // block_size, 1] = dx
 
-    print('exhaustive done')
     return mf
 
 
-def threestep_search(previous, current, mf, height, width, pnorm_distance, block_size=4, search_window=2):
+def threestep_search(previous, current, mf, height, width, pnorm_distance=0, block_size=4, search_window=12):
     """
     threestep_search 
+    Computes the motion field with the three step search BBME algorithm
 
     Args:
         previous (np.ndarray): previous frame
@@ -152,21 +156,19 @@ def threestep_search(previous, current, mf, height, width, pnorm_distance, block
         mf (np.ndarray): motion field to compute
         height (int): rows of the frame
         width (int): columns of the frame
-        pnorm_distance (int): dfd function to use
+        pnorm_distance (int, optional): index of the dfd function to use. Defaults to 0 (mae)
         block_size (int, optional): size of each block (in pixels). Defaults to 4.
-        search_window (int, optional): sized of the search window (in pixels). Defaults to 2.
+        search_window (int, optional): sized of the search window (in pixels). Defaults to 12.
 
     Returns:
         np.ndarray: motion field
     """
 
+    # compute step size according to the search window
     step_one = int(((2 * search_window) + block_size) / 3)
     step_two = int(((2 * search_window) + block_size) / 5)
     step_three = int(((2 * search_window) + block_size) / 10)
-    # step_one = 4
-    # step_two = 2
-    # step_three = 1
-    # print(step_one, step_two, step_three)
+    
     dx, dy, tmp_dx, tmp_dy = 0, 0, 0, 0
     for (block_row, block_col) in itertools.product(range(0, height - (block_size - 1), block_size),
                                                     range(0, width - (block_size - 1), block_size)):
@@ -177,10 +179,9 @@ def threestep_search(previous, current, mf, height, width, pnorm_distance, block
         # initialize minimum
         min_block = np.infty
 
-        # Executing first step
+        # executing first step
         for (window_col, window_row) in itertools.product([-step_one, 0, step_one], [-step_one, 0, step_one]):
 
-            # print(f"current position {window_row}, {window_col}")
             # Compute current target block vertices
             top_left_y = block_row + window_row
             top_left_x = block_col + window_col
@@ -207,9 +208,9 @@ def threestep_search(previous, current, mf, height, width, pnorm_distance, block
         # Compute new origin
         block_row_step_2 = block_row + dx
         block_col_step_2 = block_col + dy
+
         # reinitialize minimum
         min_block = np.infty
-        
 
         # Executing second step
         for (window_col, window_row) in itertools.product([-step_two, 0, step_two], [-step_two, 0, step_two]):
@@ -239,15 +240,16 @@ def threestep_search(previous, current, mf, height, width, pnorm_distance, block
         dx += tmp_dx
         dy += tmp_dy
 
-        # Compute new origin
+        # compute new origin
         block_row_step_3 = block_row_step_2 + dx
         block_col_step_3 = block_col_step_2 + dy
-        # initialize minimum
+
+        # reinitialize minimum
         min_block = np.infty
 
-        # Executing third step
+        # executing third step
         for (window_col, window_row) in itertools.product([-step_three, 0, step_three], [-step_three, 0, step_three]):
-            # Compute current target block vertices
+            # compute current target block vertices
             top_left_y = block_row_step_3 + window_row
             top_left_x = block_col_step_3 + window_col
             bottom_right_y = block_row_step_3 + window_row + block_size - 1
@@ -268,7 +270,6 @@ def threestep_search(previous, current, mf, height, width, pnorm_distance, block
                     min_block = dfd
                     tmp_dx = window_row
                     tmp_dy = window_col
-
         
         dx += tmp_dx
         dy += tmp_dy
@@ -278,21 +279,35 @@ def threestep_search(previous, current, mf, height, width, pnorm_distance, block
         mf[block_row // block_size,
            block_col // block_size, 1] = dx
 
-    print('3steps done')
     return mf
 
 
 
-def twodlog_search(previous, current, mf, height, width, pnorm_function, block_size=4, search_window=2):
+def twodlog_search(previous, current, mf, height, width, pnorm_function, block_size=4, search_window=12):
+    """
+    twodlog_search 
+    Computes the motion field with the 2D log search BBME algorithm
+
+    Args:
+        previous (np.ndarray): previous frame
+        current (np.ndarray): current frame
+        mf (np.ndarray): motion field to compute
+        height (int): rows of the frame
+        width (int): columns of the frame
+        pnorm_distance (int, optional): index of the dfd function to use. Defaults to 0 (mae)
+        block_size (int, optional): size of each block (in pixels). Defaults to 4.
+        search_window (int, optional): sized of the search window (in pixels). Defaults to 12.
+
+    Returns:
+        np.ndarray: motion field
+    """
+
     positions = []
-    # print(height, width)
-    out_of_bound = False
     for (block_row, block_col) in itertools.product(range(0, height - (block_size - 1), block_size),
                                                     range(0, width - (block_size - 1), block_size)):
-        # block_row, block_col = 600, 400
+                                                    
         dx, dy = 0, 0
         step_size = search_window
-        # print(f"block {block_row} {block_col}")
 
         anchor_block = previous[block_row: block_row + block_size,
                                 block_col: block_col + block_size]
@@ -302,13 +317,10 @@ def twodlog_search(previous, current, mf, height, width, pnorm_function, block_s
         x, y = block_row, block_col
 
         while step_size > 1:
-            # print(f"\tcurrent origin {x} {y}")
-
-            # initialize block minimum
+            # initialize minimum
             min_block = np.infty
-            # # initialize step minimum
-            # min_step = min_block
 
+            # recompute positions to search
             positions.clear()
             if step_size > 2:
                 # search positions are cross-shaped
@@ -318,72 +330,60 @@ def twodlog_search(previous, current, mf, height, width, pnorm_function, block_s
                 positions.append([x, y + step_size])
                 positions.append([x, y - step_size])
             elif step_size == 2:
+                # search all the 8 positions in the neighborhood
                 positions = list(itertools.product([x - 2, x, x + 2],
                                                    [y - 2, y, y + 2]))
 
             for (window_row, window_col) in positions:
-                # print(f"\t\tcurrent position {window_row}, {window_col}")
-                # print(f"\t\tx and y: {x} {y}")
-
                 top_left, bottom_right = compute_current_target_block_corners(
                     x, y, window_row, window_col, block_size)
 
-                # print(top_left)
-                # print(bottom_right)
-
                 if (top_left[0] < 0 or top_left[1] < 0 or
                         bottom_right[0] > height - 1 or bottom_right[1] > width - 1):
-                    # print(
-                    #     f"\t\t\ttop left: {top_left}, bottom right: {bottom_right}")
-                    # print("\t\t\t!! out of bound !!")
-                    out_of_bound = True
                     continue
 
                 current_block = current[top_left[0]: bottom_right[0] + 1, 
                                         top_left[1]: bottom_right[1] + 1]
                 dfd = compute_dfd(current_block, anchor_block, pnorm_function)
-                # print(f"\t\t{dfd}")
 
                 if dfd < min_block:
-                    # print("\t\tupdate min")
                     min_block = dfd
                     dx = window_row
                     dy = window_col
 
-            # if out_of_bound:
-            #     out_of_bound = False
-            #     dx, dy = x, y
-            #     break
 
             if dx == x and dy == y or step_size == 2:
-                # print("\tcount")
                 # update step size
                 step_size //= 2
-            # print("")
 
             # update coordinates
             x, y = dx, dy
-            # print(step_size)
-            # print(min_block)
-            # print(f"min positions: {dx}, {dy}")
-            # print("")
-            # print("")
 
-        # print(f"saved positions: {dx}, {dy}")
-        # print("")
-        # print("-------------")
-        # print("")
         mf[block_row // block_size,
            block_col // block_size, 1] = dx - block_row
         mf[block_row // block_size,
            block_col // block_size, 0] = dy - block_col
         
-        # break
-
     return mf
 
 
-def diamond_search(previous, current, mf, height, width, pnorm_distance, block_size, masked=False):
+def diamond_search(previous, current, mf, height, width, pnorm_distance=0, block_size=12):
+    """
+    diamond_search 
+    Computes the motion field with the diamond search BBME algorithm
+
+    Args:
+        previous (np.ndarray): previous frame
+        current (np.ndarray): current frame
+        mf (np.ndarray): motion field to compute
+        height (int): rows of the frame
+        width (int): columns of the frame
+        pnorm_distance (int, optional): index of the dfd function to use. Defaults to 0 (mae)
+        block_size (int, optional): size of each block (in pixels). Defaults to 4.
+
+    Returns:
+        nd.ndarray: motion field
+    """
 
     large_search_pattern_offsets = [
         (0, 0),
@@ -458,7 +458,6 @@ def diamond_search(previous, current, mf, height, width, pnorm_distance, block_s
 
     return mf
 
-
 pnorm_distances = [mae, mse]
 searching_procedures = [exhaustive_search,
                         threestep_search, twodlog_search, diamond_search]
@@ -466,32 +465,21 @@ searching_procedures = [exhaustive_search,
 
 def main(args):
     frames = get_video_frames(args.path)
-    idx = 23
 
-    previous = frames[idx-1]
-    current = frames[idx]
+    previous = frames[args.fi - 1]
+    current = frames[args.fi]
 
-    # print(previous.shape)
-    # cv2.imshow("cur", current)
-    # cv2.waitKey(0)
+    print(previous.shape)
+    cv2.imshow("current frame", current)
+    cv2.waitKey(0)
 
     motion_field = get_motion_fied(
         previous, current, block_size=args.block_size, searching_procedure=args.searching_procedure, search_window=args.search_window)
-    # pprint(motion_field.tolist())
 
-    # pprint(motion_field.tolist()[22])
-    # print(type(motion_field))
-    # print(motion_field.shape)
-    # print(motion_field.max)
-
-    # mf = np.zeros(
-    #     (int(previous.shape[0] / 6), int(previous.shape[1] / 6), 2))
-    # mf[0//6,18//6,0] = 12  - 0
-    # mf[0//6,18//6,1] =  6 - 18
     draw = draw_motion_field(current, motion_field)
     cv2.imwrite(os.path.join('mv_drawing.png'), draw)
-    # draw = draw_motion_field(current, mf)
-    # cv2.imwrite(os.path.join('fake_drawing.png'), draw)
+    # cv2.imshow("motionf field", draw)
+    # cv2.waitKey(0)
 
 
 if __name__ == '__main__':
@@ -499,6 +487,8 @@ if __name__ == '__main__':
         description='Computes motion field between two frames using block matching algorithms')
     parser.add_argument("-p", "--video-path", dest="path", type=str,
                         required=True, help="path of the video to analyze")
+    parser.add_argument("-fi", "--frame-index", dest="fi", type=int,
+                        required=True, help="index of the current frame to analyze in the video")
     parser.add_argument("-pn", "--p-norm", dest="pnorm", type=int,
                         default=1, help="pnorm distance to use")
     parser.add_argument("-bs", "--block-size", dest="block_size", type=int,
@@ -512,5 +502,4 @@ if __name__ == '__main__':
                              "3: Diamond search")
     args = parser.parse_args()
 
-    print(args)
     main(args)
