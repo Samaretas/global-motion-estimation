@@ -469,7 +469,6 @@ def main(args):
     previous = frames[args.fi - 1]
     current = frames[args.fi]
 
-    print(previous.shape)
     cv2.imshow("current frame", current)
     cv2.waitKey(0)
 
@@ -477,7 +476,7 @@ def main(args):
         previous, current, block_size=args.block_size, searching_procedure=args.searching_procedure, search_window=args.search_window)
 
     draw = draw_motion_field(current, motion_field)
-    cv2.imwrite(os.path.join('mv_drawing.png'), draw)
+    cv2.imwrite(os.path.join('resources/images/mv_drawing.png'), draw)
     # cv2.imshow("motionf field", draw)
     # cv2.waitKey(0)
 
@@ -490,11 +489,11 @@ if __name__ == '__main__':
     parser.add_argument("-fi", "--frame-index", dest="fi", type=int,
                         required=True, help="index of the current frame to analyze in the video")
     parser.add_argument("-pn", "--p-norm", dest="pnorm", type=int,
-                        default=1, help="pnorm distance to use")
+                        default=0, help="pnorm distance to use")
     parser.add_argument("-bs", "--block-size", dest="block_size", type=int,
-                        default=6, help="size of the block")
+                        default=12, help="size of the block")
     parser.add_argument("-sw", "--search-window", dest="search_window", type=int,
-                        default=2, help="size of the search window")
+                        default=8, help="size of the search window")
     parser.add_argument("-sp", "--searching-procedure", dest="searching_procedure", type=int, default=1,
                         help="0: Exhaustive search,\n"
                              "1: Three Step search,\n"
