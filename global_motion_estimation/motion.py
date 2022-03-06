@@ -4,7 +4,7 @@ import numpy as np
 from utils import timer
 from utils import get_pyramids
 from temp_bbme import Block_matcher
-from diy_bbme import get_motion_fied
+from global_motion_estimation.bbme import get_motion_fied
 
 
 N_MAX_ITERATIONS = 50

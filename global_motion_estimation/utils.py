@@ -50,7 +50,7 @@ def get_pyramids(original_image, levels=3):
     return pyramid
 
 
-def draw_motion_vector(frame, motion_field):
+def draw_motion_field(frame, motion_field):
     height, width = frame.shape
     frame_dummy = frame.copy()
     mf_height, mf_width, _ = motion_field.shape

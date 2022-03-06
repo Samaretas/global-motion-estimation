@@ -4,7 +4,7 @@ import argparse
 import itertools
 import numpy as np
 from math import floor
-from utils import draw_motion_vector, get_video_frames
+from utils import draw_motion_field, get_video_frames
 from pprint import pprint
 
 
@@ -12,7 +12,7 @@ def get_motion_fied(previous, current, block_size=4, search_window=2, searching_
     height = previous.shape[0]
     width = previous.shape[1]
 
-    motion_field = np.empty(
+    motion_field = np.zeros(
         (int(height / block_size), int(width / block_size), 2))
 
     search = searching_procedures[searching_procedure]
@@ -73,11 +73,11 @@ def mse(diff_block):
 
 
 def compute_current_target_block_corners(br, bl, wr, wc, bs):
-    top_left_x = wr
-    top_left_y = wc
-    bottom_right_x = wr + bs - 1
-    bottom_right_y = wc + bs - 1
-    return (top_left_x, top_left_y), (bottom_right_x, bottom_right_y)
+    top_left_y = wr
+    top_left_x = wc
+    bottom_right_y = wr + bs - 1
+    bottom_right_x = wc + bs - 1
+    return (top_left_y, top_left_x), (bottom_right_y, bottom_right_x)
 
 
 def exhaustive_search(previous, current, mf, height, width, pnorm_distance, block_size=4, search_window=2):
@@ -167,7 +167,7 @@ def threestep_search(previous, current, mf, height, width, pnorm_distance, block
     # step_two = 2
     # step_three = 1
     # print(step_one, step_two, step_three)
-    dx, dy = 0, 0
+    dx, dy, tmp_dx, tmp_dy = 0, 0, 0, 0
     for (block_row, block_col) in itertools.product(range(0, height - (block_size - 1), block_size),
                                                     range(0, width - (block_size - 1), block_size)):
 
@@ -184,15 +184,15 @@ def threestep_search(previous, current, mf, height, width, pnorm_distance, block
             # Compute current target block vertices
             top_left_y = block_row + window_row
             top_left_x = block_col + window_col
-            bottom_right_y = block_row + window_row + block_size - 1
-            bottom_right_x = block_col + window_col + block_size - 1
+            bottom_right_y = top_left_y + block_size - 1
+            bottom_right_x = top_left_x + block_size - 1
 
             if not (top_left_y < 0 or
                     top_left_x < 0 or
                     bottom_right_y > height - 1 or
                     bottom_right_x > width - 1):
 
-                # get the block centered at the current pixel in the search window from the4 current frame
+                # get the block centered at the current pixel in the search window from the current frame
                 current_block = current[top_left_y: bottom_right_y + 1,
                                         top_left_x: bottom_right_x + 1]
 
@@ -216,8 +216,8 @@ def threestep_search(previous, current, mf, height, width, pnorm_distance, block
             # Compute current target block vertices
             top_left_y = block_row_step_2 + window_row
             top_left_x = block_col_step_2 + window_col
-            bottom_right_y = block_row_step_2 + window_row + block_size - 1
-            bottom_right_x = block_col_step_2 + window_col + block_size - 1
+            bottom_right_y = top_left_y + block_size - 1
+            bottom_right_x = top_left_x + block_size - 1
 
             if not (top_left_y < 0 or
                     top_left_x < 0 or
@@ -236,7 +236,8 @@ def threestep_search(previous, current, mf, height, width, pnorm_distance, block
                     tmp_dx = window_row
                     tmp_dy = window_col
 
-        dx, dy = tmp_dx, tmp_dy
+        dx += tmp_dx
+        dy += tmp_dy
 
         # Compute new origin
         block_row_step_3 = block_row_step_2 + dx
@@ -269,12 +270,13 @@ def threestep_search(previous, current, mf, height, width, pnorm_distance, block
                     tmp_dy = window_col
 
         
-        dx, dy = tmp_dx, tmp_dy
+        dx += tmp_dx
+        dy += tmp_dy
 
         mf[block_row // block_size,
-           block_col // block_size, 1] = dy
+           block_col // block_size, 0] = dy
         mf[block_row // block_size,
-           block_col // block_size, 0] = dx
+           block_col // block_size, 1] = dx
 
     print('3steps done')
     return mf
@@ -283,64 +285,67 @@ def threestep_search(previous, current, mf, height, width, pnorm_distance, block
 
 def twodlog_search(previous, current, mf, height, width, pnorm_function, block_size=4, search_window=2):
     positions = []
-    print(height, width)
+    # print(height, width)
     out_of_bound = False
     for (block_row, block_col) in itertools.product(range(0, height - (block_size - 1), block_size),
                                                     range(0, width - (block_size - 1), block_size)):
+        # block_row, block_col = 600, 400
         dx, dy = 0, 0
         step_size = search_window
-        print(f"block {block_row} {block_col}")
+        # print(f"block {block_row} {block_col}")
 
         anchor_block = previous[block_row: block_row + block_size,
                                 block_col: block_col + block_size]
 
-        # initialize block minimum
-        min_block = np.infty
 
         # get coordinates of current block
         x, y = block_row, block_col
 
         while step_size > 1:
-            print(f"\tcurrent origin {x} {y}")
+            # print(f"\tcurrent origin {x} {y}")
 
-            # initialize step minimum
-            min_step = min_block
+            # initialize block minimum
+            min_block = np.infty
+            # # initialize step minimum
+            # min_step = min_block
 
             positions.clear()
             if step_size > 2:
                 # search positions are cross-shaped
                 positions.append([x, y])
-                positions.append([x + step_size * block_size, y])
-                positions.append([x - step_size * block_size, y])
-                positions.append([x, y + step_size * block_size])
-                positions.append([x, y - step_size * block_size])
+                positions.append([x + step_size, y])
+                positions.append([x - step_size, y])
+                positions.append([x, y + step_size])
+                positions.append([x, y - step_size])
             elif step_size == 2:
-                positions = list(itertools.product([x - 2 * block_size, x, x + 2 * block_size],
-                                                   [y - 2 * block_size, y, y + 2 * block_size]))
+                positions = list(itertools.product([x - 2, x, x + 2],
+                                                   [y - 2, y, y + 2]))
 
             for (window_row, window_col) in positions:
-                print(f"\t\tcurrent position {window_row}, {window_col}")
+                # print(f"\t\tcurrent position {window_row}, {window_col}")
                 # print(f"\t\tx and y: {x} {y}")
 
                 top_left, bottom_right = compute_current_target_block_corners(
                     x, y, window_row, window_col, block_size)
 
+                # print(top_left)
+                # print(bottom_right)
+
                 if (top_left[0] < 0 or top_left[1] < 0 or
-                        bottom_right[0] > width - 1 or bottom_right[1] > height - 1):
-                    print(
-                        f"\t\t\ttop left: {top_left}, bottom right: {bottom_right}")
-                    print("\t\t\t!! out of bound !!")
+                        bottom_right[0] > height - 1 or bottom_right[1] > width - 1):
+                    # print(
+                    #     f"\t\t\ttop left: {top_left}, bottom right: {bottom_right}")
+                    # print("\t\t\t!! out of bound !!")
                     out_of_bound = True
                     continue
 
-                current_block = current[top_left[1]: bottom_right[1] +
-                                        1, top_left[0]: bottom_right[0] + 1]
+                current_block = current[top_left[0]: bottom_right[0] + 1, 
+                                        top_left[1]: bottom_right[1] + 1]
                 dfd = compute_dfd(current_block, anchor_block, pnorm_function)
-                print(f"\t\t{dfd}")
+                # print(f"\t\t{dfd}")
 
-                if dfd < min_step:
-                    print("\t\tupdate min")
-                    min_step = dfd
+                if dfd < min_block:
+                    # print("\t\tupdate min")
                     min_block = dfd
                     dx = window_row
                     dy = window_col
@@ -351,27 +356,29 @@ def twodlog_search(previous, current, mf, height, width, pnorm_function, block_s
             #     break
 
             if dx == x and dy == y or step_size == 2:
-                print("\tcount")
+                # print("\tcount")
                 # update step size
                 step_size //= 2
-            print("")
+            # print("")
 
             # update coordinates
             x, y = dx, dy
-            print(step_size)
-            print(min_block)
-            print(f"min positions: {dx}, {dy}")
-            print("")
-            print("")
+            # print(step_size)
+            # print(min_block)
+            # print(f"min positions: {dx}, {dy}")
+            # print("")
+            # print("")
 
-        print(f"saved positions: {dx}, {dy}")
-        print("")
-        print("-------------")
-        print("")
+        # print(f"saved positions: {dx}, {dy}")
+        # print("")
+        # print("-------------")
+        # print("")
         mf[block_row // block_size,
-            block_col // block_size, 0] = dx - block_row
+           block_col // block_size, 1] = dx - block_row
         mf[block_row // block_size,
-            block_col // block_size, 1] = dy - block_col
+           block_col // block_size, 0] = dy - block_col
+        
+        # break
 
     return mf
 
@@ -412,8 +419,8 @@ def diamond_search(previous, current, mf, height, width, pnorm_distance, block_s
             min_diff = np.infty
             best_pos = match_position
             for offset in large_search_pattern_offsets:
-                (row2, col2) = (match_position[0] + offset[0]*2,
-                                match_position[1] + offset[1]*2)
+                (row2, col2) = (match_position[0] + offset[0],
+                                match_position[1] + offset[1])
                 # wrap around a try catch block
                 row2 = min(max(row2, 0), height - block_size - 1)
                 col2 = min(max(col2, 0), width - block_size - 1)
@@ -432,8 +439,8 @@ def diamond_search(previous, current, mf, height, width, pnorm_distance, block_s
         # small diamond search
         min_diff = np.infty
         for offset in small_search_pattern_offsets:
-            (row2, col2) = (match_position[0] + offset[1]*2,
-                            match_position[1] + offset[0]*2)
+            (row2, col2) = (match_position[0] + offset[1],
+                            match_position[1] + offset[0])
             row2 = min(max(row2, 0), height - block_size - 1)
             col2 = min(max(col2, 0), width - block_size - 1)
             block = current[row2:row2 + block_size,
@@ -444,10 +451,10 @@ def diamond_search(previous, current, mf, height, width, pnorm_distance, block_s
                 min_diff = diff
                 best_pos = (row2, col2)
 
-        mf[row//block_size, col//block_size, 0] = best_pos[0] - \
-            row
-        mf[row//block_size, col//block_size, 1] = best_pos[1] - \
-            col
+        mf[row // block_size,
+           col // block_size, 1] = best_pos[0] - row
+        mf[row // block_size,
+           col // block_size, 0] = best_pos[1] - col
 
     return mf
 
@@ -459,7 +466,7 @@ searching_procedures = [exhaustive_search,
 
 def main(args):
     frames = get_video_frames(args.path)
-    idx = 45
+    idx = 23
 
     previous = frames[idx-1]
     current = frames[idx]
@@ -481,9 +488,9 @@ def main(args):
     #     (int(previous.shape[0] / 6), int(previous.shape[1] / 6), 2))
     # mf[0//6,18//6,0] = 12  - 0
     # mf[0//6,18//6,1] =  6 - 18
-    draw = draw_motion_vector(current, motion_field)
+    draw = draw_motion_field(current, motion_field)
     cv2.imwrite(os.path.join('mv_drawing.png'), draw)
-    # draw = draw_motion_vector(current, mf)
+    # draw = draw_motion_field(current, mf)
     # cv2.imwrite(os.path.join('fake_drawing.png'), draw)
 
 
