@@ -38,7 +38,7 @@ if __name__ == "__main__":
         previous = frames[idx - 1]
         current = frames[idx]
 
-        compensated = motion.global_motion_estimation(previous, current)
+        compensated = motion.compensate_previous_frame(previous, current)
         diff_comp_curr = (
             np.absolute(compensated.astype("int") - current.astype("int"))
         ).astype("uint8")

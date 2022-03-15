@@ -40,8 +40,8 @@ def compute_dfd(block_1, block_2, pnorm_index=0):
 
     assert block_1.shape == block_2.shape
     pnorm = pnorm_distances[pnorm_index]
-    diff_block = np.array(block_1, dtype=np.float16) - \
-        np.array(block_2, dtype=np.float16)
+    diff_block = np.array(block_1, dtype=np.float32) - \
+        np.array(block_2, dtype=np.float32)
     return pnorm(diff_block)
 
 
@@ -367,7 +367,7 @@ def twodlog_search(previous, current, mf, height, width, pnorm_function, block_s
     return mf
 
 
-def diamond_search(previous, current, mf, height, width, pnorm_distance=0, block_size=12):
+def diamond_search(previous, current, mf, height, width, pnorm_distance=0, block_size=12, search_window=-1):
     """
     diamond_search 
     Computes the motion field with the diamond search BBME algorithm
@@ -470,7 +470,7 @@ def main(args):
     current = frames[args.fi]
 
     cv2.imshow("current frame", current)
-    cv2.waitKey(0)
+    cv2.waitKey(1)
 
     motion_field = get_motion_fied(
         previous, current, block_size=args.block_size, searching_procedure=args.searching_procedure, search_window=args.search_window)
@@ -482,6 +482,10 @@ def main(args):
 
 
 if __name__ == '__main__':
+    """
+        example: 
+            python .\global_motion_estimation\bbme.py -p '.\videos\Pan Example (Left-Right)-480.m4v' -fi 8 -bs 12 -sp 3
+    """
     parser = argparse.ArgumentParser(
         description='Computes motion field between two frames using block matching algorithms')
     parser.add_argument("-p", "--video-path", dest="path", type=str,

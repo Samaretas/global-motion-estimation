@@ -66,7 +66,7 @@ def draw_motion_field(frame, motion_field):
                 frame_dummy,
                 (idx_x, idx_y),
                 (int(idx_x + mv_x), int(idx_y + mv_y)),
-                (0, 255, 0),
+                (120, 120, 120),
                 1,
                 line_type=cv2.LINE_AA
             )
@@ -134,5 +134,12 @@ def create_video_from_frames(frame_path, num_frames, video_name, fps=30):
 
 
 if __name__ == "__main__":
-    create_video_from_frames("./results/translation_mp4/diff_comp_prev/", 32, "tangerine_diff_comp_prev.avi", 30)
-    create_video_from_frames("./results/translation_mp4/diff_curr_prev/", 32, "tangerine_diff_curr_prev.avi", 30)
+    # create_video_from_frames("./results/mat_inv_nastro3/bbme/", 75, "pan_nastro_3_bbme.avi", 5)
+    # create_video_from_frames("./results/mat_inv_nastro3/gme/", 75, "pan_nastro_3_gme_mat_inv.avi", 5)
+    matrix = np.arange(25)
+    matrix = matrix.reshape((5,5))
+    print(matrix)
+    matrix = matrix.flatten()
+    print(matrix)
+    histogram = np.histogram(matrix, np.array([i for i in range(10)]))
+    print(histogram)
