@@ -12,7 +12,7 @@ def get_motion_fied(previous, current, block_size=4, search_window=2, searching_
     width = previous.shape[1]
 
     motion_field = np.zeros(
-        (int(height / block_size), int(width / block_size), 2))
+        (int(height / block_size), int(width / block_size), 2), dtype=np.int32)
 
     search = searching_procedures[searching_procedure]
     motion_field = search(previous, current, motion_field, height,
@@ -474,6 +474,7 @@ def main(args):
 
     motion_field = get_motion_fied(
         previous, current, block_size=args.block_size, searching_procedure=args.searching_procedure, search_window=args.search_window)
+    print(motion_field)
 
     draw = draw_motion_field(current, motion_field)
     cv2.imwrite(os.path.join('resources/images/mv_drawing.png'), draw)
