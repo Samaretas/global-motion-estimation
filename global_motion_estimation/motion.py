@@ -1,16 +1,18 @@
 import multiprocessing
+from turtle import shape
 from xmlrpc.client import MAXINT
 import numpy as np
 from utils import timer
 from utils import get_pyramids
 from bbme import get_motion_fied
+import itertools
 
 
 N_MAX_ITERATIONS = 32
 GRADIENT_THRESHOLD1 = 0.1
 GRADIENT_THRESHOLD2 = 0.001
-# TODO: try at 0.05 so to have more iteration on big levels
-OUTLIER_PERCENTAGE = 0.05
+OUTLIER_PERCENTAGE = 0.1
+# Note: SVD prcedure empirically reaches worse performances
 DIRECT_INVERSE = True
 
 np.seterr(all="raise")
@@ -47,7 +49,7 @@ def dense_motion_estimation(previous, current):
         motion_field (np.ndarray): estimated dense motion field.
     """
     motion_field = get_motion_fied(
-        previous, current, block_size=4, searching_procedure=3
+        previous, current, block_size=2, searching_procedure=3
     )  # diamond search
 
     return motion_field
@@ -64,7 +66,6 @@ def compute_first_parameters(dense_motion_field):
     """
     a0 = np.mean(dense_motion_field[:, :, 0])
     a1 = np.mean(dense_motion_field[:, :, 1])
-    #! first initialization needs a2 and a5 to be 1, otherwise the prediction will be completely blank
     (a2, a3, a4, a5, a6, a7) = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
     return [a0, a1, a2, a3, a4, a5, a6, a7]
 
@@ -197,10 +198,13 @@ def parameter_projection(parameters):
     Returns:
         parameters (list): the list of the updated parameters for motion model at level l+1.
     """
-    parameters[0] *= 2
-    parameters[1] *= 2
-    parameters[6] /= 2
-    parameters[7] /= 2
+    # scale transition parameters
+    # a0
+    parameters[0] = parameters[0] * 2
+    # b0
+    parameters[3] = parameters[3] * 2
+    # parameters[6] /= 2
+    # parameters[7] /= 2
     return parameters
 
 
@@ -344,9 +348,9 @@ def gradient_descent(parameters, previous, current):
     """
     max_total_error = MAXINT
     best_parameters = parameters
+    ziter = -1
     # perform gradient descent until convergence or iteration limit
     for ziter in range(N_MAX_ITERATIONS):
-        print(f"iteration: {ziter}")
         compensated = compute_compensated_frame(previous, parameters)
         error_matrix = sum_squared_differences(compensated, current)
         error_matrix = truncate_outliers(error_matrix)
@@ -464,7 +468,7 @@ def gradient_descent(parameters, previous, current):
                     for l in range(len(bki)):
                         H[k][l] += bki[k] * bki[l]
         b = -b
-        old = np.fromiter(parameters, dtype=np.float64)
+        old = np.asarray(parameters, dtype=np.float64)
         if DIRECT_INVERSE:
             parameter_update = np.matmul(np.linalg.inv(H), b)
             parameters = old + parameter_update
@@ -498,10 +502,123 @@ def gradient_descent(parameters, previous, current):
             max_total_error = total_error
             best_parameters = parameters
 
+    print(f"iteration: {ziter}")
     return best_parameters
 
 
-@timer
+def update_parameters(parameters, previous, current):
+    # insert here robust estimation
+    block_size = 4
+    height, width = previous.shape
+    # get the dense set of points where we have the motion vectors
+    points = list()
+    for (row, col) in itertools.product(
+        range(0, height - block_size + 1, block_size),
+        range(0, width - block_size + 1, block_size),
+    ):
+        points.append([row, col])
+
+    # compute dense motion field
+    # TODO: now should be np.int32, check
+    mfield = get_motion_fied(
+        previous, current, block_size=block_size, searching_procedure=3
+    )
+
+    # compute updated parameters
+    # condition zero gradient
+    a = np.zeros(shape=(6), dtype=np.float32)
+    A = np.zeros(shape=(2, 6), dtype=np.int32)
+    A[0, 0] = 1
+    A[1, 3] = 1
+    part1xtot = 0
+    part2xtot = np.zeros(shape=(6), dtype=np.float32)
+    part1ytot = 0
+    part2ytot = np.zeros(shape=(6), dtype=np.float32)
+    w = 1 / (mfield.shape[0] * mfield.shape[1])
+    for i in range(mfield.shape[0]):
+        for j in range(mfield.shape[1]):
+            x, y = points.pop(0)
+            dx, dy = mfield[i, j]
+            dx = np.asarray([dx])
+            dy = np.asarray([dy])
+            A[1, 4] = A[0, 1] = x
+            A[0, 2] = A[1, 5] = y
+            Ax = A[0]
+            Ay = A[1]
+            part1x = np.asarray(np.matmul(np.transpose(Ax), Ax))
+            part2x = np.transpose(Ax) * dx
+            part1y = np.asarray(np.matmul(np.transpose(Ay), Ay))
+            part2y = np.transpose(Ay) * dy
+            part2x = part2x * w
+            part1x = part1x * w
+            part1y = part1y * w
+            part2y = part2y * w
+            part2xtot += part2x
+            part1xtot += part1x
+            part1ytot += part1y
+            part2ytot += part2y
+
+    # compute inverse
+    part1xtot = 1 / part1xtot
+    # compute inverse
+    part1ytot = 1 / part1ytot
+    ax = part1xtot * part2xtot
+    ay = part1ytot * part2ytot
+
+    a = a + ax
+    a = a + ay
+    return a
+
+
+def affine_model(x, y, parameters):
+    """Computes the new position (or the displacement?) of the pixel in position x,y
+
+    Args:
+        x (int): x coordinate of the pixel
+        y (int): y coordinate of the pixel
+        parameters (np.array): parameters of the affine model
+
+    Returns:
+        (tuple(int, int)): new position (or displacement?)
+    """
+    # TODO: probably just int
+    A = np.asarray(
+        [[1, x, y, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1, x, y]], dtype=np.float32
+    )
+    tparameters = np.transpose(parameters)
+    d = np.matmul(A, tparameters)
+    return d
+
+
+def compute_compensated_affine(frame, parameters):
+    """Computes the frame compensated using an affine motion model.
+
+    Args:
+        frame (np.ndarray): the image to be compensated.
+        parameters (np.ndarray): list of the parameters of the motion model.
+    """
+    log = ""
+    # compute displacement for each pixel
+    compensated = np.copy(frame)
+    for i in range(frame.shape[0]):
+        for j in range(frame.shape[1]):
+            displacement = affine_model(i, j, parameters)
+            dx = displacement[0]
+            dy = displacement[1]
+            log += str(dx)+","+str(dy)+"\n"
+            x1 = i + round(dx)
+            y1 = j + round(dy)
+            try:
+                compensated[x1][y1] = frame[i][j]
+            except IndexError:
+                # if out of border, we just use the old value
+                pass
+    with open("log.txt", "w") as outfile:
+        outfile.write(log)
+    return compensated
+
+
+# @timer
 def global_motion_estimation(previous, current):
     """Method to perform the global motion estimation.
 
@@ -517,23 +634,42 @@ def global_motion_estimation(previous, current):
     curr_pyr = get_pyramids(current)
 
     # first (coarse) level estimation
-    parameters = first_estimation(prev_pyr[0], curr_pyr[0])
-    parameters = gradient_descent(parameters, prev_pyr[0], curr_pyr[0])
+    # parameters = first_estimation(prev_pyr[0], curr_pyr[0])
+    # parameters = gradient_descent(parameters, prev_pyr[0], curr_pyr[0])
+    parameters = np.zeros(shape=(6), dtype=np.float32)
+    # parameters = update_parameters(parameters, prev_pyr[0], curr_pyr[0])
 
     # all the other levels
-    for i in range(1, len(prev_pyr)):
+    for i in range(2, len(prev_pyr)):
         parameters = parameter_projection(parameters)
-        parameters = gradient_descent(parameters, prev_pyr[i], curr_pyr[i])
-
-    # ## only translation
-    # parameters[np.array([1,5])] = 1
-    # parameters[np.array([3,4,6,7])] = 0
+        # parameters = gradient_descent(parameters, prev_pyr[i], curr_pyr[i])
+        parameters = update_parameters(parameters, prev_pyr[i], curr_pyr[i])
 
     return parameters
 
 
 def compensate_previous_frame(previous, current):
+    block_size = 4
+    height, width = previous.shape
     motion_model_parameters = global_motion_estimation(previous, current)
-    compensated = compute_compensated_frame(previous, motion_model_parameters)
-    # compensated = compute_compensated_frame_complete(current, motion_model_parameters)
+    
+    
+    # visualization experiment
+    points  = list()
+    for (row, col) in itertools.product(
+        range(0, height - block_size + 1, block_size),
+        range(0, width - block_size + 1, block_size),
+    ):
+        points.append([row, col])
+    # compute dense motion field
+    # TODO: now should be np.int32, check
+    mfield = get_motion_fied(
+        previous, current, block_size=block_size, searching_procedure=3
+    )
+    compensated_m_field = np.zeros_like(mfield)
+    for i in range(mfield.shape[0]):
+        for j in range(mfield.shape[i]):
+            compensated_m_field[(i*4), (j*4)] = affine_model(i, j, motion_model_parameters)
+
+    compensated = compute_compensated_affine(previous, motion_model_parameters)
     return compensated

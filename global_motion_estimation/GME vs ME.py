@@ -8,13 +8,6 @@ import argparse
 import os
 import cv2
 
-## save psnr json also on quit or crash
-import atexit
-psnr_dict = {}
-def exit_handler():
-    with open(args.save_path + "psnr_records.json", "w") as outfile:
-        dump(psnr_dict, outfile)
-atexit.register(exit_handler)
 
 if __name__ == "__main__":
     """
@@ -49,15 +42,16 @@ if __name__ == "__main__":
         os.mkdir(args.save_path + "diff_curr_prev")
         os.mkdir(args.save_path + "comp_differences")
     frames = get_video_frames(args.video_path)
+    psnr_dict = {}
     prev_comp = None
-
-    for idx in range(1, len(frames)):
+    print("frame shape: {}".format(frames[0].shape))
+    for idx in range(2, len(frames)):
 
         j = (idx + 1) / len(frames)
         print("[%-20s] %d/%d frames" % ("=" * int(20 * j), idx, len(frames)))
 
         # get previous, current and compensated
-        previous = frames[idx - 1]
+        previous = frames[idx - 2]
         current = frames[idx]
         compensated = motion.compensate_previous_frame(previous, current)
 
@@ -73,11 +67,11 @@ if __name__ == "__main__":
         )
 
         ## differences
-        diff_curr_comp = (
-            np.absolute(current.astype("int") - compensated.astype("int"))
-        ).astype("uint8")
         diff_curr_prev = (
             np.absolute(current.astype("int") - previous.astype("int"))
+        ).astype("uint8")
+        diff_curr_comp = (
+            np.absolute(current.astype("int") - compensated.astype("int"))
         ).astype("uint8")
 
         idx_name = str(idx - 1) + "-" + str(idx)
@@ -105,3 +99,5 @@ if __name__ == "__main__":
 
         psnr = PSNR(current, compensated)
         psnr_dict[idx_name] = str(psnr)
+        with open(args.save_path + "psnr_records.json", "w") as outfile:
+            dump(psnr_dict, outfile)
