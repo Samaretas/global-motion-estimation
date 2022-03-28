@@ -52,7 +52,8 @@ def get_pyramids(original_image, levels=3):
 
 def draw_motion_field(frame, motion_field):
     height, width = frame.shape
-    frame_dummy = frame.copy()
+    frame_dummy = cv2.cvtColor(frame,cv2.COLOR_GRAY2RGB)
+    
     mf_height, mf_width, _ = motion_field.shape
     bs = height // mf_height
 
@@ -66,7 +67,8 @@ def draw_motion_field(frame, motion_field):
                 frame_dummy,
                 (idx_x, idx_y),
                 (int(idx_x + mv_x), int(idx_y + mv_y)),
-                (120, 120, 120),
+                # (120, 120, 120),
+                (0, 0, 255),
                 1,
                 line_type=cv2.LINE_AA
             )
@@ -135,11 +137,11 @@ def create_video_from_frames(frame_path, num_frames, video_name, fps=30):
 
 if __name__ == "__main__":
     # create_video_from_frames("./results/mat_inv_nastro3/bbme/", 75, "pan_nastro_3_bbme.avi", 5)
-    # create_video_from_frames("./results/mat_inv_nastro3/gme/", 75, "pan_nastro_3_gme_mat_inv.avi", 5)
-    matrix = np.arange(25)
-    matrix = matrix.reshape((5,5))
-    print(matrix)
-    matrix = matrix.flatten()
-    print(matrix)
-    histogram = np.histogram(matrix, np.array([i for i in range(10)]))
-    print(histogram)
+    create_video_from_frames("./results/mike_ball/gme/", 80, "mike_bounce.avi", 20)
+    # matrix = np.arange(25)
+    # matrix = matrix.reshape((5,5))
+    # print(matrix)
+    # matrix = matrix.flatten()
+    # print(matrix)
+    # histogram = np.histogram(matrix, np.array([i for i in range(10)]))
+    # print(histogram)
