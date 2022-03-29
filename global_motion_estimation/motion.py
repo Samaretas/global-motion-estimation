@@ -7,7 +7,7 @@ from utils import get_pyramids
 from bbme import get_motion_fied
 import itertools
 
-
+BMME_BLOCK_SIZE = 8
 N_MAX_ITERATIONS = 32
 GRADIENT_THRESHOLD1 = 0.1
 GRADIENT_THRESHOLD2 = 0.001
@@ -508,7 +508,7 @@ def gradient_descent(parameters, previous, current):
 
 def update_parameters(parameters, previous, current):
     # insert here robust estimation
-    block_size = 4
+    block_size = BMME_BLOCK_SIZE
     height, width = previous.shape
     # get the dense set of points where we have the motion vectors
     points = list()
@@ -535,6 +535,7 @@ def update_parameters(parameters, previous, current):
     part1ytot = 0
     part2ytot = np.zeros(shape=(6), dtype=np.float32)
     w = 1 / (mfield.shape[0] * mfield.shape[1])
+    w = .01
     for i in range(mfield.shape[0]):
         for j in range(mfield.shape[1]):
             x, y = points.pop(0)
@@ -581,9 +582,8 @@ def affine_model(x, y, parameters):
     Returns:
         (tuple(int, int)): new position (or displacement?)
     """
-    # TODO: probably just int
     A = np.asarray(
-        [[1, x, y, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1, x, y]], dtype=np.float32
+        [[1, x, y, 0, 0, 0], [0, 0, 0, 1, x, y]], dtype=np.int32
     )
     tparameters = np.transpose(parameters)
     d = np.matmul(A, tparameters)
@@ -618,7 +618,7 @@ def compute_compensated_affine(frame, parameters):
     return compensated
 
 
-# @timer
+@timer
 def global_motion_estimation(previous, current):
     """Method to perform the global motion estimation.
 
@@ -627,7 +627,7 @@ def global_motion_estimation(previous, current):
         current (np.ndarray): the frame at time t.
 
     Returns:
-        the compensated previous frame (the frame predicted after previous).
+        the list of parameters of the motion model that describes the global motion between previous and current.
     """
     # create the gaussian pyramids of the frames
     prev_pyr = get_pyramids(previous)
@@ -673,3 +673,25 @@ def compensate_previous_frame(previous, current):
 
     compensated = compute_compensated_affine(previous, motion_model_parameters)
     return compensated
+
+
+def motion_field_affine(shape, parameters):
+    """Computes the motion field given by the motion model.
+
+    Args:
+        shape (np.ndarray): shape of the motion field.
+        parameters (np.ndarray): list of the parameters of the motion model.
+    """
+    new_shape = (shape[0], shape[1], 2)
+    motion_field = np.zeros(shape=new_shape, dtype=np.int16)
+    log = ""
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            displacement = affine_model(i, j, parameters)
+            log += str(displacement[0])+","+str(displacement[1])+"\n"
+            dx = round(displacement[0])
+            dy = round(displacement[1])
+            motion_field[i,j] = [dx,dy]
+    with open("log.txt", "w") as outfile:
+        outfile.write(log)
+    return motion_field
