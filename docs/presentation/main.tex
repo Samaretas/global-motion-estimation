@@ -1,0 +1,68 @@
+% Template from
+% https://www.overleaf.com/latex/templates/thu-beamer-theme/vwnqmzndvwyb
+\documentclass[1610]{beamer}
+\usepackage{SUFE}
+\usepackage[utf8x]{inputenc}
+
+\usepackage[english]{babel}
+\usepackage{calligra}
+\usepackage{graphicx,float,wrapfig}
+
+\usepackage{hyperref}
+
+\graphicspath{
+  {../assets/images}%
+%   {./docs/assets/images}%
+}
+
+\author{Samuele Conti \and Filippo Daniotti}
+\title{Global Motion Estimation}
+\subtitle{Robust hierarchical approach using an affine model}
+\institute{DISI, University of Trento}
+\date{\today}
+
+% defs
+\def\cmd#1{\texttt{\color{red}\footnotesize $\backslash$#1}}
+\def\env#1{\texttt{\color{blue}\footnotesize #1}}
+\definecolor{deepblue}{RGB}{0,0,0.5}
+\definecolor{deepred}{RGB}{0.6,0,0}
+\definecolor{deepgreen}{RGB}{0,0.5,0}
+\definecolor{halfgray}{gray}{0.55}
+
+% \lstset{
+%     basicstyle=\ttfamily\small,
+%     keywordstyle=\bfseries\color{deepblue},
+%     emphstyle=\ttfamily\color{deepred},    % Custom highlighting style
+%     stringstyle=\color{deepgreen},
+%     numbers=left,
+%     numberstyle=\small\color{halfgray},
+%     rulesepcolor=\color{red!20!green!20!blue!20},
+%     frame=shadowbox,
+% }
+
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+    \begin{figure}[H]
+        \begin{center}
+            \includegraphics[width=0.4\linewidth]{marchio_unitrento_colore_it_202002.eps}
+        \end{center}
+    \end{figure}
+\end{frame}
+
+\begin{frame}
+    \tableofcontents[sectionstyle=show,subsectionstyle=show/shaded/hide,subsubsectionstyle=show/shaded/hide]
+\end{frame}
+
+
+
+
+\begin{frame}
+    \begin{center}
+        {\Huge\calligra Thanks!}
+    \end{center}
+\end{frame}
+
+\end{document}
