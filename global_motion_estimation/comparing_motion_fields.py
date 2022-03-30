@@ -6,18 +6,18 @@ import os
 import cv2
 
 
-# video_path = ".\\videos\\pan240.mp4"
-video_path = ".\\videos\\Faster-Animation480.m4v"
-# save_path = ".\\results\\pan_affine\\"
+# video_path = ".\\videos\\Faster-Animation480.m4v"
+video_path = ".\\videos\\pan240.mp4"
+save_path = ".\\results\\pan_affine\\"
 
 if __name__ == "__main__":
     """Computes the motion field using BMME and GME, then shows the result to make a visual comparison between the two methods."""
 
-    # if not os.path.isdir(save_path):
-    #     try:
-    #         os.mkdir(save_path)
-    #     except:
-    #         raise Exception("The save path specified is not a folder")
+    if not os.path.isdir(save_path):
+        try:
+            os.mkdir(save_path)
+        except:
+            raise Exception("The save path specified is not a folder")
     frames = get_video_frames(video_path)
     prev_comp = None
     print("frame shape: {}".format(frames[0].shape))
@@ -39,10 +39,15 @@ if __name__ == "__main__":
         
         model_motion_field = motion.motion_field_affine(estimated_motion_field.shape, parameters=params)
 
+        compensated_motion_field = estimated_motion_field-model_motion_field
+
         idx_name = str(idx - 1) + "-" + str(idx)
         draw_gt = draw_motion_field(previous, estimated_motion_field)
         draw_mm = draw_motion_field(previous, model_motion_field)
+        draw_comp = draw_motion_field(previous, compensated_motion_field)
 
-        cv2.imshow(idx_name+" ground truth", draw_gt)
-        cv2.imshow(idx_name+" motion model", draw_mm)
-        cv2.waitKey(0)
+        # cv2.imshow(idx_name+" ground truth", draw_gt)
+        # cv2.imshow(idx_name+" motion model", draw_mm)
+        cv2.imwrite(save_path+idx_name+" GT.png", draw_gt)
+        cv2.imwrite(save_path+idx_name+" MM.png", draw_mm)
+        cv2.imwrite(save_path+idx_name+" Zcomp.png", draw_comp)

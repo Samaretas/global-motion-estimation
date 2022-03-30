@@ -506,69 +506,48 @@ def gradient_descent(parameters, previous, current):
     return best_parameters
 
 
-def update_parameters(parameters, previous, current):
-    # insert here robust estimation
-    block_size = BMME_BLOCK_SIZE
-    height, width = previous.shape
-    # get the dense set of points where we have the motion vectors
-    points = list()
-    for (row, col) in itertools.product(
-        range(0, height - block_size + 1, block_size),
-        range(0, width - block_size + 1, block_size),
-    ):
-        points.append([row, col])
+def best_affine_parameters(previous, current):
+    # get ground truth motion field
+    gt_motion_field = get_motion_fied(previous=previous, current=current, block_size=BMME_BLOCK_SIZE, searching_procedure=3)
+    first_part = np.zeros(shape=[3,3], dtype=np.float64)
+    second_part = np.zeros(shape=[3,1], dtype=np.float64)
+    w = 1/(previous.shape[0]*previous.shape[1])
+    for i in range(gt_motion_field.shape[0]):
+        for j in range(gt_motion_field.shape[1]):
+            x = i*4
+            y = j*4
+            Ax = np.array([[1, x, y]], dtype=np.float64)
+            dx = gt_motion_field[i,j]
+            temp_first = (np.matmul(Ax.transpose(), Ax))*w
+            temp_second = (Ax.transpose() * dx[0])*w
+            first_part += temp_first
+            second_part += temp_second
+    finv = np.linalg.inv(np.matrix(first_part))
+    finv = np.array(finv)
+    ax = np.matmul(finv, second_part)
 
-    # compute dense motion field
-    # TODO: now should be np.int32, check
-    mfield = get_motion_fied(
-        previous, current, block_size=block_size, searching_procedure=3
-    )
-
-    # compute updated parameters
-    # condition zero gradient
-    a = np.zeros(shape=(6), dtype=np.float32)
-    A = np.zeros(shape=(2, 6), dtype=np.int32)
-    A[0, 0] = 1
-    A[1, 3] = 1
-    part1xtot = 0
-    part2xtot = np.zeros(shape=(6), dtype=np.float32)
-    part1ytot = 0
-    part2ytot = np.zeros(shape=(6), dtype=np.float32)
-    w = 1 / (mfield.shape[0] * mfield.shape[1])
-    w = .01
-    for i in range(mfield.shape[0]):
-        for j in range(mfield.shape[1]):
-            x, y = points.pop(0)
-            dx, dy = mfield[i, j]
-            dx = np.asarray([dx])
-            dy = np.asarray([dy])
-            A[1, 4] = A[0, 1] = x
-            A[0, 2] = A[1, 5] = y
-            Ax = A[0]
-            Ay = A[1]
-            part1x = np.asarray(np.matmul(np.transpose(Ax), Ax))
-            part2x = np.transpose(Ax) * dx
-            part1y = np.asarray(np.matmul(np.transpose(Ay), Ay))
-            part2y = np.transpose(Ay) * dy
-            part2x = part2x * w
-            part1x = part1x * w
-            part1y = part1y * w
-            part2y = part2y * w
-            part2xtot += part2x
-            part1xtot += part1x
-            part1ytot += part1y
-            part2ytot += part2y
-
-    # compute inverse
-    part1xtot = 1 / part1xtot
-    # compute inverse
-    part1ytot = 1 / part1ytot
-    ax = part1xtot * part2xtot
-    ay = part1ytot * part2ytot
-
-    a = a + ax
-    a = a + ay
+    first_part = np.zeros(shape=[3,3], dtype=np.float64)
+    second_part = np.zeros(shape=[3,1], dtype=np.float64)
+    w = 1/(previous.shape[0]*previous.shape[1])
+    for i in range(gt_motion_field.shape[0]):
+        for j in range(gt_motion_field.shape[1]):
+            x = i*4
+            y = j*4
+            Ay = np.array([[1, x, y]], dtype=np.float64)
+            dx = gt_motion_field[i,j]
+            temp_first = (np.matmul(Ay.transpose(), Ay))*w
+            temp_second = (Ay.transpose() * dx[1])*w
+            first_part += temp_first
+            second_part += temp_second
+    finv = np.linalg.inv(np.matrix(first_part))
+    finv = np.array(finv)
+    ay = np.matmul(finv, second_part)
+    ax = ax.reshape((3,))
+    ay = ay.reshape((3,))
+    a = np.concatenate([ax, ay])
     return a
+
+
 
 
 def affine_model(x, y, parameters):
@@ -632,18 +611,16 @@ def global_motion_estimation(previous, current):
     # create the gaussian pyramids of the frames
     prev_pyr = get_pyramids(previous)
     curr_pyr = get_pyramids(current)
+    parameters = np.zeros(shape=(6), dtype=np.float32)
 
     # first (coarse) level estimation
     # parameters = first_estimation(prev_pyr[0], curr_pyr[0])
-    # parameters = gradient_descent(parameters, prev_pyr[0], curr_pyr[0])
-    parameters = np.zeros(shape=(6), dtype=np.float32)
-    # parameters = update_parameters(parameters, prev_pyr[0], curr_pyr[0])
 
     # all the other levels
     for i in range(2, len(prev_pyr)):
         parameters = parameter_projection(parameters)
-        # parameters = gradient_descent(parameters, prev_pyr[i], curr_pyr[i])
-        parameters = update_parameters(parameters, prev_pyr[i], curr_pyr[i])
+        # parameters = update_parameters(parameters, prev_pyr[i], curr_pyr[i])
+        parameters = best_affine_parameters(prev_pyr[i], curr_pyr[i])
 
     return parameters
 
