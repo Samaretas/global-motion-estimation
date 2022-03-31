@@ -6,8 +6,8 @@ import os
 import cv2
 
 
-video_path = ".\\videos\\cesco_no_bkg.mp4"
-save_path = ".\\results\\cesco_no_bkg\\"
+video_path = ".\\videos\\pan240.mp4"
+save_path = ".\\results\\pan_robust_affine\\"
 
 if __name__ == "__main__":
     """Computes the motion field using BMME and GME, then shows the result to make a visual comparison between the two methods."""

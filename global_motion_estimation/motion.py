@@ -1,6 +1,7 @@
 import multiprocessing
 from turtle import shape
 from xmlrpc.client import MAXINT
+from cv2 import threshold
 import numpy as np
 from utils import timer
 from utils import get_pyramids
@@ -8,6 +9,7 @@ from bbme import get_motion_fied
 import itertools
 
 BMME_BLOCK_SIZE = 8
+MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE = .3
 
 # TODO: should be able to delete
 OUTLIER_PERCENTAGE = 0.1
@@ -35,42 +37,57 @@ def dense_motion_estimation(previous, current):
     """
     motion_field = get_motion_fied(
         previous, current, block_size=2, searching_procedure=3
-    )  # diamond search
-
+    )
     return motion_field
 
 
 def best_affine_parameters(previous, current):
+    """Given two frames, computes the parameters that optimize the affine model for global motion estimation between the two frames.
+    These parameters are computed minimizing a measure of error on the difference between motion vectors computed via BMME and motion vectors obtained with the affine model.
+    For theoretical explanation refer to [Yao Wang, Jôrn Ostermann and Ya-Qin Zhang, Video Processing and Communications 1st Edition].
+
+    Args:
+        previous (np.ndarray): previous frame.
+        current (np.ndarray): current frame.
+
+    Returns:
+        np.ndarray: array with parameters of the affine motion model [a0,a1,a2,b0,b1,b2].
+    """
     # get ground truth motion field
-    gt_motion_field = get_motion_fied(previous=previous, current=current, block_size=BMME_BLOCK_SIZE, searching_procedure=3)
-    first_part = np.zeros(shape=[3,3], dtype=np.float64)
-    second_part = np.zeros(shape=[3,1], dtype=np.float64)
-    w = 1/(previous.shape[0]*previous.shape[1])
+    gt_motion_field = get_motion_fied(
+        previous=previous,
+        current=current,
+        block_size=BMME_BLOCK_SIZE,
+        searching_procedure=3,
+    )
+    first_part = np.zeros(shape=[3, 3], dtype=np.float64)
+    second_part = np.zeros(shape=[3, 1], dtype=np.float64)
+    w = 1 / (previous.shape[0] * previous.shape[1])
     for i in range(gt_motion_field.shape[0]):
         for j in range(gt_motion_field.shape[1]):
-            x = i*4
-            y = j*4
+            x = i * 4
+            y = j * 4
             Ax = np.array([[1, x, y]], dtype=np.float64)
-            dx = gt_motion_field[i,j]
-            temp_first = (np.matmul(Ax.transpose(), Ax))*w
-            temp_second = (Ax.transpose() * dx[0])*w
+            dx = gt_motion_field[i, j]
+            temp_first = (np.matmul(Ax.transpose(), Ax)) * w
+            temp_second = (Ax.transpose() * dx[0]) * w
             first_part += temp_first
             second_part += temp_second
     finv = np.linalg.inv(np.matrix(first_part))
     finv = np.array(finv)
     ax = np.matmul(finv, second_part)
 
-    first_part = np.zeros(shape=[3,3], dtype=np.float64)
-    second_part = np.zeros(shape=[3,1], dtype=np.float64)
-    w = 1/(previous.shape[0]*previous.shape[1])
+    first_part = np.zeros(shape=[3, 3], dtype=np.float64)
+    second_part = np.zeros(shape=[3, 1], dtype=np.float64)
+    w = 1 / (previous.shape[0] * previous.shape[1])
     for i in range(gt_motion_field.shape[0]):
         for j in range(gt_motion_field.shape[1]):
-            x = i*4
-            y = j*4
+            x = i * 4
+            y = j * 4
             Ay = np.array([[1, x, y]], dtype=np.float64)
-            dx = gt_motion_field[i,j]
-            temp_first = (np.matmul(Ay.transpose(), Ay))*w
-            temp_second = (Ay.transpose() * dx[1])*w
+            dx = gt_motion_field[i, j]
+            temp_first = (np.matmul(Ay.transpose(), Ay)) * w
+            temp_second = (Ay.transpose() * dx[1]) * w
             first_part += temp_first
             second_part += temp_second
     finv = np.linalg.inv(np.matrix(first_part))
@@ -83,19 +100,17 @@ def best_affine_parameters(previous, current):
 
 
 def affine_model(x, y, parameters):
-    """Computes the new position (or the displacement?) of the pixel in position x,y
+    """Computes the or the displacement of the pixel in position <x,y> given by the application of the affine model with the passed parameters.
 
     Args:
-        x (int): x coordinate of the pixel
-        y (int): y coordinate of the pixel
-        parameters (np.array): parameters of the affine model
+        x (int): x coordinate of the pixel.
+        y (int): y coordinate of the pixel.
+        parameters (np.array): parameters of the affine model.
 
     Returns:
-        (tuple(int, int)): new position (or displacement?)
+        (tuple(int, int)): displacement of the pixel in position <x,y>.
     """
-    A = np.asarray(
-        [[1, x, y, 0, 0, 0], [0, 0, 0, 1, x, y]], dtype=np.int32
-    )
+    A = np.asarray([[1, x, y, 0, 0, 0], [0, 0, 0, 1, x, y]], dtype=np.int32)
     tparameters = np.transpose(parameters)
     d = np.matmul(A, tparameters)
     return d
@@ -104,26 +119,30 @@ def affine_model(x, y, parameters):
 @timer
 def global_motion_estimation(previous, current):
     """Method to perform the global motion estimation.
+    - uses affine model to model global motion
+    - uses robust estimation removing outliers from global motion estimation
+    - uses a hierarchical approach to make the estimation more robust
 
     Args:
         previous (np.ndarray): the frame at time t-1.
         current (np.ndarray): the frame at time t.
 
     Returns:
-        the list of parameters of the motion model that describes the global motion between previous and current.
+        np.ndarray: The list of parameters of the motion model that describes the global motion between previous and current.
     """
     # create the gaussian pyramids of the frames
     prev_pyr = get_pyramids(previous)
     curr_pyr = get_pyramids(current)
-    parameters = np.zeros(shape=(6), dtype=np.float32)
-
+    
     # first (coarse) level estimation
-    # parameters = first_estimation(prev_pyr[0], curr_pyr[0])
+    parameters = np.zeros(shape=(6), dtype=np.float32)
+    parameters = first_parameter_estimation(prev_pyr[0], curr_pyr[0])
+
 
     # all the other levels
-    for i in range(2, len(prev_pyr)):
+    for i in range(1, len(prev_pyr)):
         parameters = parameter_projection(parameters)
-        parameters = best_affine_parameters(prev_pyr[i], curr_pyr[i])
+        parameters = best_affine_parameters_robust(prev_pyr[i], curr_pyr[i], parameters)
 
     return parameters
 
@@ -134,6 +153,9 @@ def motion_field_affine(shape, parameters):
     Args:
         shape (np.ndarray): shape of the motion field.
         parameters (np.ndarray): list of the parameters of the motion model.
+
+    Returns:
+        np.ndarray: the motion field given by the affine model with the passed parameters.
     """
     new_shape = (shape[0], shape[1], 2)
     motion_field = np.zeros(shape=new_shape, dtype=np.int16)
@@ -142,9 +164,137 @@ def motion_field_affine(shape, parameters):
             displacement = affine_model(i, j, parameters)
             dx = round(displacement[0])
             dy = round(displacement[1])
-            motion_field[i,j] = [dx,dy]
+            motion_field[i, j] = [dx, dy]
     return motion_field
 
+
+def first_parameter_estimation(previous, current):
+    """Computes the parameters for the perspective motion model for the first iteration.
+
+    Parameters:
+        previous:   previous frame.
+        current:    current frame.
+
+    Returns:
+        np.ndarray: first estimation of the parameters, obtained with dense motion estimation.
+    """
+    # estimate the dense motion field
+    dense_motion_field = dense_motion_estimation(previous, current)
+    parameters = compute_first_parameters(dense_motion_field)
+    return parameters
+
+
+def compute_first_parameters(dense_motion_field):
+    """Given the initial motion field, returns the first estimation of the parameters.
+    For the first estimation only transition is taken into account, therefore only parameters a0 and b0 are computed.
+
+    Args:
+        dense_motion_field (np.ndarray): ndarray with shape[-1]=2; the touples in the last dimension represent the shift of the pixel from previous to current frame. It is computed via dense motion field estimation.
+
+    Returns:
+        np.ndarray: the list of parameters of the motion model.
+    """
+    a0 = np.mean(dense_motion_field[:, :, 0])
+    b0 = np.mean(dense_motion_field[:, :, 1])
+    return np.array([a0, 0.0, 0.0, b0, 0.0, 0.0], dtype=np.float32)
+
+
+def parameter_projection(parameters):
+    """Projection of the parameters from level l to level l+1.
+
+    Citing the paper: `The projection of the motion parameters from one level onto the next one consists merely of multiplying a0 and a1 by 2, and dividing a6 and a7 by two.`
+
+    Args:
+        parameters (list): the list of the current parameters for motion model at level l.
+
+    Returns:
+        parameters (list): the list of the updated parameters for motion model at level l+1.
+    """
+    # scale transition parameters
+    # a0
+    parameters[0] = parameters[0] * 2
+    # b0
+    parameters[3] = parameters[3] * 2
+    return parameters
+
+
+def best_affine_parameters_robust(previous, current, old_parameters):
+    """Robust version of the method to compute parameters for the affine model.
+    1. estimates motion field with old parameters
+    2. eliminates outliers
+    3. gets new parameters without outliers
+
+    Args:
+        previous (np.ndarray): previous frame.
+        current (np.ndarray): current frame.
+
+    Returns:
+        np.ndarray: array with parameters of the affine motion model [a0,a1,a2,b0,b1,b2].
+    """
+    # get ground truth motion field
+    gt_motion_field = get_motion_fied(
+        previous=previous,
+        current=current,
+        block_size=BMME_BLOCK_SIZE,
+        searching_procedure=3,
+    )
+    
+    # get affine model's motion field w/ old parameters
+    old_params_motion_field = motion_field_affine(gt_motion_field.shape, old_parameters)
+
+    # compute differences and create mask to hide outliers
+    # get difference between motion vectors
+    diff = gt_motion_field-old_params_motion_field
+    # get norm of difference vector
+    diff = np.abs(diff)
+    diff = diff.sum(axis=2)
+    all_diffs = diff.flatten()
+    all_diffs.sort()
+    threshold_index = int(MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE*len(all_diffs))
+    threshold_value = all_diffs[-threshold_index] # since sort in ascending order
+    outlier = diff>threshold_value
+
+    # compute parameters minimizing error
+    # use mask to avoid computing on outliers
+    first_part = np.zeros(shape=[3, 3], dtype=np.float64)
+    second_part = np.zeros(shape=[3, 1], dtype=np.float64)
+    w = 1 / (previous.shape[0] * previous.shape[1])
+    for i in range(gt_motion_field.shape[0]):
+        for j in range(gt_motion_field.shape[1]):
+            if not outlier[i,j]:
+                x = i * 4
+                y = j * 4
+                Ax = np.array([[1, x, y]], dtype=np.float64)
+                dx = gt_motion_field[i, j]
+                temp_first = (np.matmul(Ax.transpose(), Ax)) * w
+                temp_second = (Ax.transpose() * dx[0]) * w
+                first_part += temp_first
+                second_part += temp_second
+    finv = np.linalg.inv(np.matrix(first_part))
+    finv = np.array(finv)
+    ax = np.matmul(finv, second_part)
+
+    first_part = np.zeros(shape=[3, 3], dtype=np.float64)
+    second_part = np.zeros(shape=[3, 1], dtype=np.float64)
+    w = 1 / (previous.shape[0] * previous.shape[1])
+    for i in range(gt_motion_field.shape[0]):
+        for j in range(gt_motion_field.shape[1]):
+            if not outlier[i,j]:
+                x = i * 4
+                y = j * 4
+                Ay = np.array([[1, x, y]], dtype=np.float64)
+                dx = gt_motion_field[i, j]
+                temp_first = (np.matmul(Ay.transpose(), Ay)) * w
+                temp_second = (Ay.transpose() * dx[1]) * w
+                first_part += temp_first
+                second_part += temp_second
+    finv = np.linalg.inv(np.matrix(first_part))
+    finv = np.array(finv)
+    ay = np.matmul(finv, second_part)
+    ax = ax.reshape((3,))
+    ay = ay.reshape((3,))
+    a = np.concatenate([ax, ay])
+    return a
 
 
 # TODO: remove or move to other location
@@ -153,10 +303,9 @@ def compensate_previous_frame(previous, current):
     block_size = 4
     height, width = previous.shape
     motion_model_parameters = global_motion_estimation(previous, current)
-    
-    
+
     # visualization experiment
-    points  = list()
+    points = list()
     for (row, col) in itertools.product(
         range(0, height - block_size + 1, block_size),
         range(0, width - block_size + 1, block_size),
@@ -170,7 +319,9 @@ def compensate_previous_frame(previous, current):
     compensated_m_field = np.zeros_like(mfield)
     for i in range(mfield.shape[0]):
         for j in range(mfield.shape[i]):
-            compensated_m_field[(i*4), (j*4)] = affine_model(i, j, motion_model_parameters)
+            compensated_m_field[(i * 4), (j * 4)] = affine_model(
+                i, j, motion_model_parameters
+            )
 
     compensated = compute_compensated_affine(previous, motion_model_parameters)
     return compensated
@@ -200,27 +351,6 @@ def compute_compensated_affine(frame, parameters):
                 # if out of border, we just use the old value
                 pass
     return compensated
-
-
-def parameter_projection(parameters):
-    """Projection of the parameters from level l to level l+1.
-
-    Citing the paper: `The projection of the motion parameters from one level onto the next one consists merely of multiplying a0 and a1 by 2, and dividing a6 and a7 by two.`
-
-    Args:
-        parameters (list): the list of the current parameters for motion model at level l.
-
-    Returns:
-        parameters (list): the list of the updated parameters for motion model at level l+1.
-    """
-    # scale transition parameters
-    # a0
-    parameters[0] = parameters[0] * 2
-    # b0
-    parameters[3] = parameters[3] * 2
-    # parameters[6] /= 2
-    # parameters[7] /= 2
-    return parameters
 
 
 def handmade_gradient_descent(parameters, previous, current):
@@ -521,21 +651,6 @@ def gradient_descent(parameters, previous, current):
     return best_parameters
 
 
-def compute_first_parameters(dense_motion_field):
-    """Given the initial motion field, returns the first estimation of the parameters.
-
-    Args:
-        dense_motion_field (np.ndarray): ndarray with shape[-1]=2; the touples in the last dimension represent the shift of the pixel from previous to current frame. It is computed via dense motion field estimation.
-
-    Returns:
-        list[float]: the list of parameters of the motion model.
-    """
-    a0 = np.mean(dense_motion_field[:, :, 0])
-    a1 = np.mean(dense_motion_field[:, :, 1])
-    (a2, a3, a4, a5, a6, a7) = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
-    return [a0, a1, a2, a3, a4, a5, a6, a7]
-
-
 def motion_model(p, x, y):
     """Given the current parameters and the coordinates of a point, computes the compensated coordinates.
     Note that since the motion model is separated from the rest of the code, it can be easily changed with others; this means that trying different types of motion model should be as easy as writing them in this function.
@@ -633,24 +748,6 @@ def compute_compensated_frame(previous: np.ndarray, parameters: list):
                 # if out of border, we just use the old value
                 pass
     return compensated
-
-
-def first_estimation(previous, current):
-    """Computes the parameters for the perspective motion model for the first iteration.
-
-    Since the paper does not specify how to get the parameters from the first motion estimation I assume it sets all of them to 0 but a0 and a1 which are initialized thorugh the dense motion field estimation.
-
-    Parameters:
-        previous:  previous frame.
-        current:    current frame.
-
-    Returns:
-        first estimation of the parameters, obtained with dense motion estimation.
-    """
-    # estimate the dense motion field
-    dense_motion_field = dense_motion_estimation(previous, current)
-    parameters = compute_first_parameters(dense_motion_field)
-    return parameters
 
 
 def sum_squared_differences(previous, current):

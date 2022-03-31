@@ -7,7 +7,7 @@ import numpy as np
 
 from utils import draw_motion_field, get_video_frames
 
-def get_motion_fied(previous, current, block_size=4, search_window=2, searching_procedure=1, pnorm_distance=0):
+def get_motion_fied(previous, current, block_size=4, search_window=2, searching_procedure=1, pnorm_distance=0) -> np.ndarray:
     height = previous.shape[0]
     width = previous.shape[1]
 
