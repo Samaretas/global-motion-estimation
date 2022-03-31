@@ -6,9 +6,8 @@ import os
 import cv2
 
 
-# video_path = ".\\videos\\Faster-Animation480.m4v"
-video_path = ".\\videos\\pan240.mp4"
-save_path = ".\\results\\pan_affine\\"
+video_path = ".\\videos\\cesco_no_bkg.mp4"
+save_path = ".\\results\\cesco_no_bkg\\"
 
 if __name__ == "__main__":
     """Computes the motion field using BMME and GME, then shows the result to make a visual comparison between the two methods."""

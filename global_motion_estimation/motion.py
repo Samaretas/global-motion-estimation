@@ -8,30 +8,15 @@ from bbme import get_motion_fied
 import itertools
 
 BMME_BLOCK_SIZE = 8
+
+# TODO: should be able to delete
+OUTLIER_PERCENTAGE = 0.1
 N_MAX_ITERATIONS = 32
 GRADIENT_THRESHOLD1 = 0.1
 GRADIENT_THRESHOLD2 = 0.001
-OUTLIER_PERCENTAGE = 0.1
 # Note: SVD prcedure empirically reaches worse performances
 DIRECT_INVERSE = True
-
 np.seterr(all="raise")
-
-
-def sum_squared_differences(previous, current):
-    """Computes the sum of squared differences between frames.
-
-    Args:
-        previous (np.ndarray):  previous frame.
-        current (np.ndarray):  current frame.
-    """
-    if type(previous) != np.ndarray or type(current) != np.ndarray:
-        raise Exception("Should use only numpy arrays as parameters")
-    if previous.shape != current.shape:
-        raise Exception("Frames must have the same shape")
-    E = current - previous
-    E = E * E
-    return E
 
 
 def dense_motion_estimation(previous, current):
@@ -55,136 +40,166 @@ def dense_motion_estimation(previous, current):
     return motion_field
 
 
-def compute_first_parameters(dense_motion_field):
-    """Given the initial motion field, returns the first estimation of the parameters.
+def best_affine_parameters(previous, current):
+    # get ground truth motion field
+    gt_motion_field = get_motion_fied(previous=previous, current=current, block_size=BMME_BLOCK_SIZE, searching_procedure=3)
+    first_part = np.zeros(shape=[3,3], dtype=np.float64)
+    second_part = np.zeros(shape=[3,1], dtype=np.float64)
+    w = 1/(previous.shape[0]*previous.shape[1])
+    for i in range(gt_motion_field.shape[0]):
+        for j in range(gt_motion_field.shape[1]):
+            x = i*4
+            y = j*4
+            Ax = np.array([[1, x, y]], dtype=np.float64)
+            dx = gt_motion_field[i,j]
+            temp_first = (np.matmul(Ax.transpose(), Ax))*w
+            temp_second = (Ax.transpose() * dx[0])*w
+            first_part += temp_first
+            second_part += temp_second
+    finv = np.linalg.inv(np.matrix(first_part))
+    finv = np.array(finv)
+    ax = np.matmul(finv, second_part)
+
+    first_part = np.zeros(shape=[3,3], dtype=np.float64)
+    second_part = np.zeros(shape=[3,1], dtype=np.float64)
+    w = 1/(previous.shape[0]*previous.shape[1])
+    for i in range(gt_motion_field.shape[0]):
+        for j in range(gt_motion_field.shape[1]):
+            x = i*4
+            y = j*4
+            Ay = np.array([[1, x, y]], dtype=np.float64)
+            dx = gt_motion_field[i,j]
+            temp_first = (np.matmul(Ay.transpose(), Ay))*w
+            temp_second = (Ay.transpose() * dx[1])*w
+            first_part += temp_first
+            second_part += temp_second
+    finv = np.linalg.inv(np.matrix(first_part))
+    finv = np.array(finv)
+    ay = np.matmul(finv, second_part)
+    ax = ax.reshape((3,))
+    ay = ay.reshape((3,))
+    a = np.concatenate([ax, ay])
+    return a
+
+
+def affine_model(x, y, parameters):
+    """Computes the new position (or the displacement?) of the pixel in position x,y
 
     Args:
-        dense_motion_field (np.ndarray): ndarray with shape[-1]=2; the touples in the last dimension represent the shift of the pixel from previous to current frame. It is computed via dense motion field estimation.
+        x (int): x coordinate of the pixel
+        y (int): y coordinate of the pixel
+        parameters (np.array): parameters of the affine model
 
     Returns:
-        list[float]: the list of parameters of the motion model.
+        (tuple(int, int)): new position (or displacement?)
     """
-    a0 = np.mean(dense_motion_field[:, :, 0])
-    a1 = np.mean(dense_motion_field[:, :, 1])
-    (a2, a3, a4, a5, a6, a7) = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
-    return [a0, a1, a2, a3, a4, a5, a6, a7]
+    A = np.asarray(
+        [[1, x, y, 0, 0, 0], [0, 0, 0, 1, x, y]], dtype=np.int32
+    )
+    tparameters = np.transpose(parameters)
+    d = np.matmul(A, tparameters)
+    return d
 
 
-def motion_model(p, x, y):
-    """Given the current parameters and the coordinates of a point, computes the compensated coordinates.
-    Note that since the motion model is separated from the rest of the code, it can be easily changed with others; this means that trying different types of motion model should be as easy as writing them in this function.
-    Note: w/ this you should chanfe also compute_first_parameters.
+@timer
+def global_motion_estimation(previous, current):
+    """Method to perform the global motion estimation.
 
     Args:
-        parameters (list): parameters of the motion model.
-        x (int): x coordinate to translate with the motion model.
-        y (int): y coordinate to translate with the motion model.
+        previous (np.ndarray): the frame at time t-1.
+        current (np.ndarray): the frame at time t.
 
     Returns:
-        tuple[int,int]: couple of coordinates, both translated w/ motion model.
+        the list of parameters of the motion model that describes the global motion between previous and current.
     """
-    # TODO: change this with a more conscious approximation (<> x.5)
-    try:
-        x1 = int(round((p[0] + p[2] * x + p[3] * y) / (p[6] * x + p[7] * y + 1)))
-        y1 = int(round((p[1] + p[4] * x + p[5] * y) / (p[6] * x + p[7] * y + 1)))
-    except:
-        print(f"Denominator problem")
-        # print(f"Denominator problem: {(p[6]*x+p[7]*y+1)} cannot be used")
-        # print(f"parameters p[6]:{p[6]} p[7]:{p[7]} x:{x} y:{y}")
-        x1 = y1 = MAXINT
-    return (x1, y1)
+    # create the gaussian pyramids of the frames
+    prev_pyr = get_pyramids(previous)
+    curr_pyr = get_pyramids(current)
+    parameters = np.zeros(shape=(6), dtype=np.float32)
+
+    # first (coarse) level estimation
+    # parameters = first_estimation(prev_pyr[0], curr_pyr[0])
+
+    # all the other levels
+    for i in range(2, len(prev_pyr)):
+        parameters = parameter_projection(parameters)
+        parameters = best_affine_parameters(prev_pyr[i], curr_pyr[i])
+
+    return parameters
 
 
-def compute_compensated_frame_complete(previous: np.ndarray, parameters: list):
-    """Computes I' given I and the current parameters. Differently from the non-corrected version, it also corrects noise with the use of a small convolutional kernel.
+def motion_field_affine(shape, parameters):
+    """Computes the motion field given by the motion model.
 
     Args:
-        previous (np.ndarray): previous frame.
-        parameters (list): current parameters.
-
-    Returns:
-        np.ndarray: motion-compensated frame.
+        shape (np.ndarray): shape of the motion field.
+        parameters (np.ndarray): list of the parameters of the motion model.
     """
-    compensated_coordinates = []
-    for i in range(previous.shape[0]):
-        for j in range(previous.shape[1]):
-            x1, y1 = motion_model(parameters, i, j)
-            compensated_coordinates.append([x1, y1])
-    # sanitize the coordinates (respect for thr boundaries)
-    for i in range(len(compensated_coordinates)):
-        if compensated_coordinates[i][0] < 0:
-            compensated_coordinates[i][0] = 0
-        elif compensated_coordinates[i][0] >= previous.shape[0]:
-            compensated_coordinates[i][0] = previous.shape[0] - 1
-
-        if compensated_coordinates[i][1] < 0:
-            compensated_coordinates[i][1] = 0
-        elif compensated_coordinates[i][1] >= previous.shape[1]:
-            compensated_coordinates[i][1] = previous.shape[1] - 1
-    # create compensated frame with the compensated coordinates
-    # TODO: commented this to try use median filter, uncomment later
-    # compensated_image = np.copy(previous)
-    compensated_image = np.zeros_like(previous)
-    mask = np.zeros_like(previous, dtype=bool)
-    for i in range(previous.shape[0]):
-        for j in range(previous.shape[1]):
-            cc = compensated_coordinates.pop(0)  # compensated_coordinate
-            compensated_image[cc[0]][cc[1]] = previous[i][j]
-            mask[cc[0]][cc[1]] = True
-    # the mask identifies the points where we find noise, namely the points that retain the value of the previous frame
-    for i in range(1, previous.shape[0] - 1):
-        for j in range(1, previous.shape[1] - 1):
-            if not mask[i][j]:
-                compensated_image[i][j] = int(
-                    (
-                        np.sum((compensated_image[i - 1 : i + 2, j - 1 : j + 2]))
-                        - compensated_image[i][j]
-                    )
-                    / 8
-                )
-    return compensated_image
+    new_shape = (shape[0], shape[1], 2)
+    motion_field = np.zeros(shape=new_shape, dtype=np.int16)
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            displacement = affine_model(i, j, parameters)
+            dx = round(displacement[0])
+            dy = round(displacement[1])
+            motion_field[i,j] = [dx,dy]
+    return motion_field
 
 
-def compute_compensated_frame(previous: np.ndarray, parameters: list):
-    """Computes I' given I and the current parameters.
+
+# TODO: remove or move to other location
+## UNUSED
+def compensate_previous_frame(previous, current):
+    block_size = 4
+    height, width = previous.shape
+    motion_model_parameters = global_motion_estimation(previous, current)
+    
+    
+    # visualization experiment
+    points  = list()
+    for (row, col) in itertools.product(
+        range(0, height - block_size + 1, block_size),
+        range(0, width - block_size + 1, block_size),
+    ):
+        points.append([row, col])
+    # compute dense motion field
+    # TODO: now should be np.int32, check
+    mfield = get_motion_fied(
+        previous, current, block_size=block_size, searching_procedure=3
+    )
+    compensated_m_field = np.zeros_like(mfield)
+    for i in range(mfield.shape[0]):
+        for j in range(mfield.shape[i]):
+            compensated_m_field[(i*4), (j*4)] = affine_model(i, j, motion_model_parameters)
+
+    compensated = compute_compensated_affine(previous, motion_model_parameters)
+    return compensated
+
+    return d
+
+
+def compute_compensated_affine(frame, parameters):
+    """Computes the frame compensated using an affine motion model.
 
     Args:
-        previous (np.ndarray): previous frame.
-        parameters (list): current parameters.
-
-    Returns:
-        np.ndarray: motion-compensated frame.
+        frame (np.ndarray): the image to be compensated.
+        parameters (np.ndarray): list of the parameters of the motion model.
     """
-    # note: if we generate the compensated starting from a zeroes matrix, we can correct missing pixels with a median filter... but also leaves white the part outside
-    # compensated = np.zeros_like(previous)
-    compensated = np.copy(previous)
-    for i in range(compensated.shape[0]):
-        for j in range(compensated.shape[1]):
-            (x1, y1) = motion_model(parameters, i, j)
+    # compute displacement for each pixel
+    compensated = np.copy(frame)
+    for i in range(frame.shape[0]):
+        for j in range(frame.shape[1]):
+            displacement = affine_model(i, j, parameters)
+            dx = displacement[0]
+            dy = displacement[1]
+            x1 = i + round(dx)
+            y1 = j + round(dy)
             try:
-                compensated[x1][y1] = previous[i][j]
+                compensated[x1][y1] = frame[i][j]
             except IndexError:
                 # if out of border, we just use the old value
                 pass
     return compensated
-
-
-def first_estimation(previous, current):
-    """Computes the parameters for the perspective motion model for the first iteration.
-
-    Since the paper does not specify how to get the parameters from the first motion estimation I assume it sets all of them to 0 but a0 and a1 which are initialized thorugh the dense motion field estimation.
-
-    Parameters:
-        previous:  previous frame.
-        current:    current frame.
-
-    Returns:
-        first estimation of the parameters, obtained with dense motion estimation.
-    """
-    # estimate the dense motion field
-    dense_motion_field = dense_motion_estimation(previous, current)
-    parameters = compute_first_parameters(dense_motion_field)
-    return parameters
 
 
 def parameter_projection(parameters):
@@ -506,169 +521,149 @@ def gradient_descent(parameters, previous, current):
     return best_parameters
 
 
-def best_affine_parameters(previous, current):
-    # get ground truth motion field
-    gt_motion_field = get_motion_fied(previous=previous, current=current, block_size=BMME_BLOCK_SIZE, searching_procedure=3)
-    first_part = np.zeros(shape=[3,3], dtype=np.float64)
-    second_part = np.zeros(shape=[3,1], dtype=np.float64)
-    w = 1/(previous.shape[0]*previous.shape[1])
-    for i in range(gt_motion_field.shape[0]):
-        for j in range(gt_motion_field.shape[1]):
-            x = i*4
-            y = j*4
-            Ax = np.array([[1, x, y]], dtype=np.float64)
-            dx = gt_motion_field[i,j]
-            temp_first = (np.matmul(Ax.transpose(), Ax))*w
-            temp_second = (Ax.transpose() * dx[0])*w
-            first_part += temp_first
-            second_part += temp_second
-    finv = np.linalg.inv(np.matrix(first_part))
-    finv = np.array(finv)
-    ax = np.matmul(finv, second_part)
-
-    first_part = np.zeros(shape=[3,3], dtype=np.float64)
-    second_part = np.zeros(shape=[3,1], dtype=np.float64)
-    w = 1/(previous.shape[0]*previous.shape[1])
-    for i in range(gt_motion_field.shape[0]):
-        for j in range(gt_motion_field.shape[1]):
-            x = i*4
-            y = j*4
-            Ay = np.array([[1, x, y]], dtype=np.float64)
-            dx = gt_motion_field[i,j]
-            temp_first = (np.matmul(Ay.transpose(), Ay))*w
-            temp_second = (Ay.transpose() * dx[1])*w
-            first_part += temp_first
-            second_part += temp_second
-    finv = np.linalg.inv(np.matrix(first_part))
-    finv = np.array(finv)
-    ay = np.matmul(finv, second_part)
-    ax = ax.reshape((3,))
-    ay = ay.reshape((3,))
-    a = np.concatenate([ax, ay])
-    return a
-
-
-
-
-def affine_model(x, y, parameters):
-    """Computes the new position (or the displacement?) of the pixel in position x,y
+def compute_first_parameters(dense_motion_field):
+    """Given the initial motion field, returns the first estimation of the parameters.
 
     Args:
-        x (int): x coordinate of the pixel
-        y (int): y coordinate of the pixel
-        parameters (np.array): parameters of the affine model
+        dense_motion_field (np.ndarray): ndarray with shape[-1]=2; the touples in the last dimension represent the shift of the pixel from previous to current frame. It is computed via dense motion field estimation.
 
     Returns:
-        (tuple(int, int)): new position (or displacement?)
+        list[float]: the list of parameters of the motion model.
     """
-    A = np.asarray(
-        [[1, x, y, 0, 0, 0], [0, 0, 0, 1, x, y]], dtype=np.int32
-    )
-    tparameters = np.transpose(parameters)
-    d = np.matmul(A, tparameters)
-    return d
+    a0 = np.mean(dense_motion_field[:, :, 0])
+    a1 = np.mean(dense_motion_field[:, :, 1])
+    (a2, a3, a4, a5, a6, a7) = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+    return [a0, a1, a2, a3, a4, a5, a6, a7]
 
 
-def compute_compensated_affine(frame, parameters):
-    """Computes the frame compensated using an affine motion model.
+def motion_model(p, x, y):
+    """Given the current parameters and the coordinates of a point, computes the compensated coordinates.
+    Note that since the motion model is separated from the rest of the code, it can be easily changed with others; this means that trying different types of motion model should be as easy as writing them in this function.
+    Note: w/ this you should chanfe also compute_first_parameters.
 
     Args:
-        frame (np.ndarray): the image to be compensated.
-        parameters (np.ndarray): list of the parameters of the motion model.
+        parameters (list): parameters of the motion model.
+        x (int): x coordinate to translate with the motion model.
+        y (int): y coordinate to translate with the motion model.
+
+    Returns:
+        tuple[int,int]: couple of coordinates, both translated w/ motion model.
     """
-    log = ""
-    # compute displacement for each pixel
-    compensated = np.copy(frame)
-    for i in range(frame.shape[0]):
-        for j in range(frame.shape[1]):
-            displacement = affine_model(i, j, parameters)
-            dx = displacement[0]
-            dy = displacement[1]
-            log += str(dx)+","+str(dy)+"\n"
-            x1 = i + round(dx)
-            y1 = j + round(dy)
+    # TODO: change this with a more conscious approximation (<> x.5)
+    try:
+        x1 = int(round((p[0] + p[2] * x + p[3] * y) / (p[6] * x + p[7] * y + 1)))
+        y1 = int(round((p[1] + p[4] * x + p[5] * y) / (p[6] * x + p[7] * y + 1)))
+    except:
+        print(f"Denominator problem")
+        # print(f"Denominator problem: {(p[6]*x+p[7]*y+1)} cannot be used")
+        # print(f"parameters p[6]:{p[6]} p[7]:{p[7]} x:{x} y:{y}")
+        x1 = y1 = MAXINT
+    return (x1, y1)
+
+
+def compute_compensated_frame_complete(previous: np.ndarray, parameters: list):
+    """Computes I' given I and the current parameters. Differently from the non-corrected version, it also corrects noise with the use of a small convolutional kernel.
+
+    Args:
+        previous (np.ndarray): previous frame.
+        parameters (list): current parameters.
+
+    Returns:
+        np.ndarray: motion-compensated frame.
+    """
+    compensated_coordinates = []
+    for i in range(previous.shape[0]):
+        for j in range(previous.shape[1]):
+            x1, y1 = motion_model(parameters, i, j)
+            compensated_coordinates.append([x1, y1])
+    # sanitize the coordinates (respect for thr boundaries)
+    for i in range(len(compensated_coordinates)):
+        if compensated_coordinates[i][0] < 0:
+            compensated_coordinates[i][0] = 0
+        elif compensated_coordinates[i][0] >= previous.shape[0]:
+            compensated_coordinates[i][0] = previous.shape[0] - 1
+
+        if compensated_coordinates[i][1] < 0:
+            compensated_coordinates[i][1] = 0
+        elif compensated_coordinates[i][1] >= previous.shape[1]:
+            compensated_coordinates[i][1] = previous.shape[1] - 1
+    # create compensated frame with the compensated coordinates
+    # TODO: commented this to try use median filter, uncomment later
+    # compensated_image = np.copy(previous)
+    compensated_image = np.zeros_like(previous)
+    mask = np.zeros_like(previous, dtype=bool)
+    for i in range(previous.shape[0]):
+        for j in range(previous.shape[1]):
+            cc = compensated_coordinates.pop(0)  # compensated_coordinate
+            compensated_image[cc[0]][cc[1]] = previous[i][j]
+            mask[cc[0]][cc[1]] = True
+    # the mask identifies the points where we find noise, namely the points that retain the value of the previous frame
+    for i in range(1, previous.shape[0] - 1):
+        for j in range(1, previous.shape[1] - 1):
+            if not mask[i][j]:
+                compensated_image[i][j] = int(
+                    (
+                        np.sum((compensated_image[i - 1 : i + 2, j - 1 : j + 2]))
+                        - compensated_image[i][j]
+                    )
+                    / 8
+                )
+    return compensated_image
+
+
+def compute_compensated_frame(previous: np.ndarray, parameters: list):
+    """Computes I' given I and the current parameters.
+
+    Args:
+        previous (np.ndarray): previous frame.
+        parameters (list): current parameters.
+
+    Returns:
+        np.ndarray: motion-compensated frame.
+    """
+    # note: if we generate the compensated starting from a zeroes matrix, we can correct missing pixels with a median filter... but also leaves white the part outside
+    # compensated = np.zeros_like(previous)
+    compensated = np.copy(previous)
+    for i in range(compensated.shape[0]):
+        for j in range(compensated.shape[1]):
+            (x1, y1) = motion_model(parameters, i, j)
             try:
-                compensated[x1][y1] = frame[i][j]
+                compensated[x1][y1] = previous[i][j]
             except IndexError:
                 # if out of border, we just use the old value
                 pass
-    with open("log.txt", "w") as outfile:
-        outfile.write(log)
     return compensated
 
 
-@timer
-def global_motion_estimation(previous, current):
-    """Method to perform the global motion estimation.
+def first_estimation(previous, current):
+    """Computes the parameters for the perspective motion model for the first iteration.
 
-    Args:
-        previous (np.ndarray): the frame at time t-1.
-        current (np.ndarray): the frame at time t.
+    Since the paper does not specify how to get the parameters from the first motion estimation I assume it sets all of them to 0 but a0 and a1 which are initialized thorugh the dense motion field estimation.
+
+    Parameters:
+        previous:  previous frame.
+        current:    current frame.
 
     Returns:
-        the list of parameters of the motion model that describes the global motion between previous and current.
+        first estimation of the parameters, obtained with dense motion estimation.
     """
-    # create the gaussian pyramids of the frames
-    prev_pyr = get_pyramids(previous)
-    curr_pyr = get_pyramids(current)
-    parameters = np.zeros(shape=(6), dtype=np.float32)
-
-    # first (coarse) level estimation
-    # parameters = first_estimation(prev_pyr[0], curr_pyr[0])
-
-    # all the other levels
-    for i in range(2, len(prev_pyr)):
-        parameters = parameter_projection(parameters)
-        # parameters = update_parameters(parameters, prev_pyr[i], curr_pyr[i])
-        parameters = best_affine_parameters(prev_pyr[i], curr_pyr[i])
-
+    # estimate the dense motion field
+    dense_motion_field = dense_motion_estimation(previous, current)
+    parameters = compute_first_parameters(dense_motion_field)
     return parameters
 
 
-def compensate_previous_frame(previous, current):
-    block_size = 4
-    height, width = previous.shape
-    motion_model_parameters = global_motion_estimation(previous, current)
-    
-    
-    # visualization experiment
-    points  = list()
-    for (row, col) in itertools.product(
-        range(0, height - block_size + 1, block_size),
-        range(0, width - block_size + 1, block_size),
-    ):
-        points.append([row, col])
-    # compute dense motion field
-    # TODO: now should be np.int32, check
-    mfield = get_motion_fied(
-        previous, current, block_size=block_size, searching_procedure=3
-    )
-    compensated_m_field = np.zeros_like(mfield)
-    for i in range(mfield.shape[0]):
-        for j in range(mfield.shape[i]):
-            compensated_m_field[(i*4), (j*4)] = affine_model(i, j, motion_model_parameters)
-
-    compensated = compute_compensated_affine(previous, motion_model_parameters)
-    return compensated
-
-
-def motion_field_affine(shape, parameters):
-    """Computes the motion field given by the motion model.
+def sum_squared_differences(previous, current):
+    """Computes the sum of squared differences between frames.
 
     Args:
-        shape (np.ndarray): shape of the motion field.
-        parameters (np.ndarray): list of the parameters of the motion model.
+        previous (np.ndarray):  previous frame.
+        current (np.ndarray):  current frame.
     """
-    new_shape = (shape[0], shape[1], 2)
-    motion_field = np.zeros(shape=new_shape, dtype=np.int16)
-    log = ""
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            displacement = affine_model(i, j, parameters)
-            log += str(displacement[0])+","+str(displacement[1])+"\n"
-            dx = round(displacement[0])
-            dy = round(displacement[1])
-            motion_field[i,j] = [dx,dy]
-    with open("log.txt", "w") as outfile:
-        outfile.write(log)
-    return motion_field
+    if type(previous) != np.ndarray or type(current) != np.ndarray:
+        raise Exception("Should use only numpy arrays as parameters")
+    if previous.shape != current.shape:
+        raise Exception("Frames must have the same shape")
+    E = current - previous
+    E = E * E
+    return E
