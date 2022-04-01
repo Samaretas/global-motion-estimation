@@ -5,13 +5,13 @@ from cv2 import threshold
 import numpy as np
 from utils import timer
 from utils import get_pyramids
-from bbme import get_motion_fied
+from bbme import get_motion_field
 import itertools
 
-BMME_BLOCK_SIZE = 8
-MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE = .3
+BBME_BLOCK_SIZE = 8
+MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE = .5
 
-# TODO: should be able to delete
+# TODO: delete during cleanup
 OUTLIER_PERCENTAGE = 0.1
 N_MAX_ITERATIONS = 32
 GRADIENT_THRESHOLD1 = 0.1
@@ -35,7 +35,7 @@ def dense_motion_estimation(previous, current):
     Returns:
         motion_field (np.ndarray): estimated dense motion field.
     """
-    motion_field = get_motion_fied(
+    motion_field = get_motion_field(
         previous, current, block_size=2, searching_procedure=3
     )
     return motion_field
@@ -43,7 +43,7 @@ def dense_motion_estimation(previous, current):
 
 def best_affine_parameters(previous, current):
     """Given two frames, computes the parameters that optimize the affine model for global motion estimation between the two frames.
-    These parameters are computed minimizing a measure of error on the difference between motion vectors computed via BMME and motion vectors obtained with the affine model.
+    These parameters are computed minimizing a measure of error on the difference between motion vectors computed via BBME and motion vectors obtained with the affine model.
     For theoretical explanation refer to [Yao Wang, Jôrn Ostermann and Ya-Qin Zhang, Video Processing and Communications 1st Edition].
 
     Args:
@@ -54,10 +54,10 @@ def best_affine_parameters(previous, current):
         np.ndarray: array with parameters of the affine motion model [a0,a1,a2,b0,b1,b2].
     """
     # get ground truth motion field
-    gt_motion_field = get_motion_fied(
+    gt_motion_field = get_motion_field(
         previous=previous,
         current=current,
-        block_size=BMME_BLOCK_SIZE,
+        block_size=BBME_BLOCK_SIZE,
         searching_procedure=3,
     )
     first_part = np.zeros(shape=[3, 3], dtype=np.float64)
@@ -147,7 +147,7 @@ def global_motion_estimation(previous, current):
     return parameters
 
 
-def motion_field_affine(shape, parameters):
+def get_motion_field_affine(shape, parameters):
     """Computes the motion field given by the motion model.
 
     Args:
@@ -232,15 +232,15 @@ def best_affine_parameters_robust(previous, current, old_parameters):
         np.ndarray: array with parameters of the affine motion model [a0,a1,a2,b0,b1,b2].
     """
     # get ground truth motion field
-    gt_motion_field = get_motion_fied(
+    gt_motion_field = get_motion_field(
         previous=previous,
         current=current,
-        block_size=BMME_BLOCK_SIZE,
+        block_size=BBME_BLOCK_SIZE,
         searching_procedure=3,
     )
     
     # get affine model's motion field w/ old parameters
-    old_params_motion_field = motion_field_affine(gt_motion_field.shape, old_parameters)
+    old_params_motion_field = get_motion_field_affine(gt_motion_field.shape, old_parameters)
 
     # compute differences and create mask to hide outliers
     # get difference between motion vectors
@@ -313,7 +313,7 @@ def compensate_previous_frame(previous, current):
         points.append([row, col])
     # compute dense motion field
     # TODO: now should be np.int32, check
-    mfield = get_motion_fied(
+    mfield = get_motion_field(
         previous, current, block_size=block_size, searching_procedure=3
     )
     compensated_m_field = np.zeros_like(mfield)

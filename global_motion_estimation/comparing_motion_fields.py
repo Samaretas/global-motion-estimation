@@ -1,6 +1,6 @@
 from cv2 import imshow
 from utils import get_video_frames, PSNR, draw_motion_field
-from bbme import get_motion_fied
+from bbme import get_motion_field
 import motion as motion
 import os
 import cv2
@@ -10,7 +10,7 @@ video_path = ".\\videos\\pan240.mp4"
 save_path = ".\\results\\pan_robust_affine\\"
 
 if __name__ == "__main__":
-    """Computes the motion field using BMME and GME, then shows the result to make a visual comparison between the two methods."""
+    """Computes the motion field using BBME and GME, then shows the result to make a visual comparison between the two methods."""
 
     if not os.path.isdir(save_path):
         try:
@@ -32,11 +32,11 @@ if __name__ == "__main__":
         params = motion.global_motion_estimation(previous, current)
 
         # compute motion field ground truth and global
-        estimated_motion_field = get_motion_fied(
-            previous, current, block_size=motion.BMME_BLOCK_SIZE, searching_procedure=3
+        estimated_motion_field = get_motion_field(
+            previous, current, block_size=motion.BBME_BLOCK_SIZE, searching_procedure=3
         )
         
-        model_motion_field = motion.motion_field_affine(estimated_motion_field.shape, parameters=params)
+        model_motion_field = motion.get_motion_field_affine(estimated_motion_field.shape, parameters=params)
 
         compensated_motion_field = estimated_motion_field-model_motion_field
 

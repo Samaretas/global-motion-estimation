@@ -1,6 +1,6 @@
 from cv2 import imshow
 from utils import get_video_frames, PSNR, draw_motion_field
-from bbme import get_motion_fied
+from bbme import get_motion_field
 import motion as motion
 from json import dump
 import numpy as np
@@ -59,10 +59,10 @@ if __name__ == "__main__":
         # compensated = cv2.medianBlur(compensated, ksize=3)
 
         # compute motion field both for previous and compensated
-        motion_field_previous = get_motion_fied(
+        motion_field_previous = get_motion_field(
             previous, current, block_size=10, searching_procedure=3
         )
-        motion_field_compensated = get_motion_fied(
+        motion_field_compensated = get_motion_field(
             compensated, current, block_size=10, searching_procedure=3
         )
 
@@ -90,7 +90,7 @@ if __name__ == "__main__":
         if prev_comp is None:
             prev_comp = compensated
         else:
-            motion_field_compensated_compensated = get_motion_fied(
+            motion_field_compensated_compensated = get_motion_field(
                 prev_comp, compensated, block_size=10, searching_procedure=3
             )
             draw = draw_motion_field(prev_comp, motion_field_compensated_compensated)
