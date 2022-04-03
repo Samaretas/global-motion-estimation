@@ -58,32 +58,47 @@ def motion_compensation(previous, current):
 if __name__ == "__main__":
     import utils
     import cv2
+    import os
+    from json import dump
+
+
+    save_path = "./results/pan240/"
+    if not os.path.isdir(save_path):
+        try:
+            os.mkdir(save_path)
+        except:
+            raise Exception("The save path specified is not a folder")
+    if not os.path.isdir(save_path + "frames"):
+        os.mkdir(save_path + "frames")
+        os.mkdir(save_path + "diff_curr_comp")
+        os.mkdir(save_path + "diff_curr_prev")
 
     # frames = utils.get_video_frames("./videos/Faster-Animation480.m4v")
     frames = utils.get_video_frames("./videos/pan240.mp4")
-    prev = frames[30]
-    curr = frames[33]
+    psnr_dict = {}
     
-    compensated = motion_compensation(prev, curr)
+    for i in range(3, len(frames)):
+        prev = frames[i-3]
+        curr = frames[i]
+        
+        compensated = motion_compensation(prev, curr)
 
-    ## differences
-    diff_curr_prev = (
-        np.absolute(curr.astype("int") - prev.astype("int"))
-    ).astype("uint8")
-    diff_curr_comp = (
-        np.absolute(curr.astype("int") - compensated.astype("int"))
-    ).astype("uint8")
+        ## differences
+        diff_curr_prev = (
+            np.absolute(curr.astype("int") - prev.astype("int"))
+        ).astype("uint8")
+        diff_curr_comp = (
+            np.absolute(curr.astype("int") - compensated.astype("int"))
+        ).astype("uint8")
 
-    ## draw global motion
-    # prev = utils.draw_motion_field(prev, motion_field)
-
-    ## save results
-    cv2.imwrite("./resources/Previous.png", prev)
-    cv2.imwrite("./resources/Current.png", curr[:,7:])
-    cv2.imwrite("./resources/Compensated.png", compensated[:,7:])
-    cv2.imwrite("./resources/diff_cur_prev.png", diff_curr_prev)
-    cv2.imwrite("./resources/diff_cur_comp.png", diff_curr_comp)
-
-    ## compute PSNR
-    # print("PSNR {}".format(utils.PSNR(curr, compensated)))
-    print("PSNR {}".format(utils.PSNR(curr[:,7:], compensated[:,7:])))
+        idx_name = str(i - 3) + "-" + str(i)
+        ## save results
+        cv2.imwrite(save_path+"/frames/"+str(i-3)+"-frame.png", frames[i-3])
+        cv2.imwrite(save_path+"/diff_curr_comp/"+str(idx_name)+".png", diff_curr_comp)
+        cv2.imwrite(save_path+"/diff_curr_prev/"+str(idx_name)+".png", diff_curr_prev)
+    
+        ## compute PSNR
+        psnr = utils.PSNR(curr, compensated)
+        psnr_dict[idx_name] = str(psnr)
+        with open(save_path + "psnr_records.json", "w") as outfile:
+            dump(psnr_dict, outfile)

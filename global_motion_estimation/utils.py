@@ -119,8 +119,8 @@ def create_video_from_frames(frame_path, num_frames, video_name, fps=30):
     import os
     img_array = []
     img_names = []
-    for i in range(num_frames):
-        s = str(i)+"-"+str(i+1)+".png"
+    for i in range(3, num_frames):
+        s = str(i-3)+"-"+str(i)+".png"
         img_names.append(s)
     for img in img_names:
         image = cv2.imread(frame_path+img)
@@ -137,7 +137,9 @@ def create_video_from_frames(frame_path, num_frames, video_name, fps=30):
 
 if __name__ == "__main__":
     # create_video_from_frames("./results/mat_inv_nastro3/bbme/", 75, "pan_nastro_3_bbme.avi", 5)
-    create_video_from_frames("./results/mike_ball/gme/", 80, "mike_bounce.avi", 20)
+    # create_video_from_frames("./results/mike_ball/gme/", 80, "mike_bounce.avi", 20)
+    create_video_from_frames("./results/pan240/diff_curr_comp/", 205, "pan240_compensated_gme.avi", 30)
+    create_video_from_frames("./results/pan240/diff_curr_prev/", 205, "pan240_not_compensated.avi", 30)
     # matrix = np.arange(25)
     # matrix = matrix.reshape((5,5))
     # print(matrix)
