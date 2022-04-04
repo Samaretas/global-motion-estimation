@@ -1,0 +1,20 @@
+\usetheme{Warsaw}
+\usefonttheme[]{professionalfonts}
+\useoutertheme{infolines} % Alternatively: miniframes, infolines, split
+\useinnertheme{circles}
+
+\definecolor{UBCblue}{rgb}{0.04706, 0.13725, 0.26667} % UBC Blue (primary)
+\definecolor{UBCgrey}{rgb}{0.3686, 0.5255, 0.6235} % UBC Grey (secondary)
+
+\setbeamercolor{palette primary}{bg=UBCblue,fg=white}
+\setbeamercolor{palette secondary}{bg=UBCblue,fg=white}
+\setbeamercolor{palette tertiary}{bg=UBCblue,fg=white}
+\setbeamercolor{palette quaternary}{bg=UBCblue,fg=white}
+\setbeamercolor{structure}{fg=UBCblue} % itemize, enumerate, etc
+\setbeamercolor{section in toc}{fg=UBCblue} % TOC sections
+
+% Override palette coloring with secondary
+\setbeamercolor{title in head/foot}{bg=UBCgrey,fg=white}
+\setbeamercolor{frametitle}{bg=UBCgrey,fg=white}
+\setbeamercolor{itemize subitem}{fg=UBCgrey}
+\setbeamertemplate{itemize subitem}{\scriptsize$\blacktriangleright$}
