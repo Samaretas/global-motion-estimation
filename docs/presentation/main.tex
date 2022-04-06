@@ -4,19 +4,27 @@
 
 \usepackage[english]{babel}
 \usepackage{calligra}
-\usepackage{graphicx,float,wrapfig}
 \usepackage{subcaption}
 \usepackage{hyperref}
 
-\renewcommand{\bold}[1]{\textbf{\structure{#1}}}
-
+% Graphics and video
+\usepackage{graphicx,float,wrapfig}
+\usepackage{animate}
+% \usepackage{media9}
+% \usepackage{multimedia}
 \graphicspath{
   {../assets/}%
-  }
+}
+% \addmediapath{
+%     ../assets/
+% }
+
+\renewcommand{\bold}[1]{\textbf{\structure{#1}}}
+
   
 \author[Conti \and Daniotti]{Samuele Conti \and Filippo Daniotti}
 \title[Global Motion Estimation]{\textsc{Global Motion Estimation}}
-\subtitle{A robust and hierarchical approach using an affine model}
+\subtitle{A robust and hierarchical approach}
 \institute[DISI - University of Trento]{Department of Information Engineering\\and Computer Science}
 \date{April 20, 2022}
 
@@ -49,10 +57,10 @@
     In this work we are going to present:
     \begin{itemize}
         \item a broad introduction to the problem of global motion estimation
-        \item an overview of the wide body of literature that covers the problem
+        \item an overview of the theoretical foundations of our solution
         \item the framework we developed from the aforementioned literature
         \item an analysis of the performances of our solution
-        \item a brief discussion of the limitations and possible improvements of our solution
+        \item a brief discussion of the limitations and possible improvements
     \end{itemize}
 \end{frame}
 
@@ -63,21 +71,28 @@
     \begin{itemize}
         \item idea: the difference between two frames gives information on the motion in the scene
         \item ideally, we could be able to estimate the direction and velocity of any object of interest
-        \item camera movements pollute such estimate
-        \begin{itemize}
-            \item they introduce apparent motion for every object
-        \end{itemize} 
+        \item in fact, the problem is quite convoluted
+        \begin{columns}
+            \begin{column}{0.4\textwidth}
+                \begin{itemize}
+                    \item the motion in a scene is often a combination of multiple moving object
+                    \item alongside local motion of actors, there may be camera movements that affect the whole image
+                \end{itemize}
+            \end{column}
+            \begin{column}{0.4\textwidth}
+                \begin{center}
+                    \animategraphics[loop,autoplay,width=.7\linewidth]{20}{gifs/pan240/pan240-}{0}{40}
+                \end{center}
+            \end{column}
+        \end{columns} 
     \end{itemize}
 \end{frame}
 
 \begin{frame}{Global motion stimation}
-    Global motion estimation aims to compute an estimate of the global motion field patterns introduced by the camera
+    Global motion estimation aims to compute an estimate of the global motion patterns introduced by the camera
     \bigskip
     \begin{itemize}
-        \item idea: subtract the global motion from the motion field
-        \begin{itemize}
-            \item this should highlight the local motion of the objects
-        \end{itemize} 
+        \item \textit{camera movements described motion models projectve polynomial affine}
         \item removing camera motion is useful in a virety of applications:
         \begin{itemize}
             \item when dealing unwanted motion from a video 
@@ -182,6 +197,25 @@
 	\end{figure}
 \end{frame}
 
+\begin{frame}{Hierarchical TSS}
+    \begin{figure}[H]
+		\begin{minipage}{.45\textwidth}
+            \centering
+            \includegraphics[keepaspectratio, width=.55\linewidth]{images/bbme-im.png}
+            \subcaption{Target frame}
+            \label{fig:bbme-1-im}
+		\end{minipage}
+		\begin{minipage}{.45\textwidth}
+            \centering
+            \includegraphics[keepaspectratio, width=.55\linewidth]{images/bbme-1-res.png}
+            \subcaption{Needle diagram}
+            \label{fig:bbme-1-res}
+		\end{minipage}
+        \label{fig:bbme-1}
+        \caption{Motion field result of our TSS implementation}
+	\end{figure}
+\end{frame}
+
 \begin{frame}{2D Log search}
 	\begin{figure}
 		\begin{minipage}{.45\textwidth}
@@ -227,7 +261,7 @@
                 \item if the minimum DFD is in the center position, then go to 3
                 \item else, go to 2
             \end{itemize}
-            \item replace LDSP in the minimum DFD of the previous operation and recompute DFD;
+            \item reposition LDSP in the minimum DFD of the previous operation and recompute DFD;
             \begin{itemize}
                 \item if the minimum DFD is in the center position, then go to 3
                 \item else, repeat 
@@ -270,12 +304,20 @@
 \end{frame}
 
 \subsection{Refinement: robust and hierarchical GME}
+
 \subsection{Motion compensation}
 \begin{frame}{Compensation}
-    
+%     \includemedia[
+%     activate=onclick,
+%     width=0.5\textwidth
+% ]{\includegraphics{gifs/pan240/pan240-0.png}}{videos/pan240.flv}
+% \movie[externalviewer]{\includegraphics{gifs/pan240/pan240-0.png}}{../assets/videos/pan240.mp4}
+% \href{run:../assets/videos/pan240.mp4}{text}
 \end{frame}
 
-\section{Performances}
+\section{Evaluation}
+\subsection{Qualitative: compensation}
+\subsection{Quantitative: PSNR}
 
 \section{Conclusions}
 
