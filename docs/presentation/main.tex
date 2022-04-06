@@ -5,7 +5,7 @@
 \usepackage[english]{babel}
 \usepackage{calligra}
 \usepackage{graphicx,float,wrapfig}
-
+\usepackage{subcaption}
 \usepackage{hyperref}
 
 \renewcommand{\bold}[1]{\textbf{\structure{#1}}}
@@ -127,90 +127,141 @@
 
 \subsection{Dense motion estimation}
 \begin{frame}{Block-based motion estimation}
-	The affine model requires a dense motion field when computing the parameters, which can be computed using a block-based approach
+	The affine model requires a dense motion field when computing the parameters, which we compute via a block-based approach
 
 	\bigskip	
-	We implemented 4 well-established BBME algorithms:
+	We started with 3 well-established BBME algorithms:
 	\begin{itemize}
 		\item exhaustive search
 		\item three-step search
 		\item 2D log search
-		\item diamond search
 	\end{itemize}
+    Then, we search for new algorithms in the literature and landed on \bold{diamond search}
 	\bigskip
-	As DFD, we tried both 1-norm and 2-norm
+    \begin{block}{Displaced frame difference}
+        As DFD, we tried both 1-norm (MAE) and 2-norm (MSE)        
+    \end{block}
     
 \end{frame}
 
-\begin{frame}{Exhaustice search}
-	\begin{columns}
-		\begin{column}{0.5\textwidth}
-			\begin{figure}
-				\centering
-				\includegraphics[keepaspectratio, width=.5\linewidth]{images/bbme-im.png}
-			\end{figure}
-		\end{column}
-		\begin{column}{0.5\textwidth}
-			\begin{figure}
-				\centering
-				\includegraphics[keepaspectratio, width=.5\linewidth]{images/bbme-0-res.png}
-			\end{figure}
-		\end{column}
-	\end{columns}
+\begin{frame}{Exhaustive search}
+	\begin{figure}
+		\begin{minipage}{.45\textwidth}
+            \centering
+            \includegraphics[keepaspectratio, width=.55\linewidth]{images/bbme-im.png}
+            \subcaption{Target frame}
+            \label{fig:bbme-0-im}
+		\end{minipage}
+		\begin{minipage}{.45\textwidth}
+            \centering
+            \includegraphics[keepaspectratio, width=.55\linewidth]{images/bbme-0-res.png}
+            \subcaption{Needle diagram}
+            \label{fig:bbme-0-res}
+		\end{minipage}
+        \label{fig:bbme-0}
+        \caption{Motion field result of our EBBME implementation}
+	\end{figure}
 \end{frame}
 
 \begin{frame}{Three-step search}
-	
-	\begin{columns}
-		\begin{column}{0.5\textwidth}
-			\begin{figure}
-				\centering
-				\includegraphics[keepaspectratio, width=.5\linewidth]{images/bbme-im.png}
-			\end{figure}
-		\end{column}
-		\begin{column}{0.5\textwidth}
-			\begin{figure}
-				\centering
-				\includegraphics[keepaspectratio, width=.5\linewidth]{images/bbme-1-res.png}
-			\end{figure}
-		\end{column}
-	\end{columns}
+	\begin{figure}[H]
+		\begin{minipage}{.45\textwidth}
+            \centering
+            \includegraphics[keepaspectratio, width=.55\linewidth]{images/bbme-im.png}
+            \subcaption{Target frame}
+            \label{fig:bbme-1-im}
+		\end{minipage}
+		\begin{minipage}{.45\textwidth}
+            \centering
+            \includegraphics[keepaspectratio, width=.55\linewidth]{images/bbme-1-res.png}
+            \subcaption{Needle diagram}
+            \label{fig:bbme-1-res}
+		\end{minipage}
+        \label{fig:bbme-1}
+        \caption{Motion field result of our TSS implementation}
+	\end{figure}
 \end{frame}
 
 \begin{frame}{2D Log search}
-	
-	\begin{columns}
-		\begin{column}{0.5\textwidth}
-			\begin{figure}
-				\centering
-				\includegraphics[keepaspectratio, width=.5\linewidth]{images/bbme-im.png}
-			\end{figure}
-		\end{column}
-		\begin{column}{0.5\textwidth}
-			\begin{figure}
-				\centering
-				\includegraphics[keepaspectratio, width=.5\linewidth]{images/bbme-2-res.png}
-			\end{figure}
-		\end{column}
-	\end{columns}
+	\begin{figure}
+		\begin{minipage}{.45\textwidth}
+            \centering
+            \includegraphics[keepaspectratio, width=.55\linewidth]{images/bbme-im.png}
+            \subcaption{Target frame}
+            \label{fig:bbme-2-im}
+		\end{minipage}
+		\begin{minipage}{.45\textwidth}
+            \centering
+            \includegraphics[keepaspectratio, width=.55\linewidth]{images/bbme-2-res.png}
+            \subcaption{Needle diagram}
+            \label{fig:bbme-2-res}
+		\end{minipage}
+        \label{fig:bbme-2}
+        \caption{Motion field result of our TDLS implementation}
+	\end{figure}
 \end{frame}
 
+\subsubsection*{Diamond search BBME}
 \begin{frame}{Diamond search}
-	
-	\begin{columns}
-		\begin{column}{0.5\textwidth}
-			\begin{figure}
-				\centering
-				\includegraphics[keepaspectratio, width=.5\linewidth]{images/bbme-im.png}
-			\end{figure}
-		\end{column}
-		\begin{column}{0.5\textwidth}
-			\begin{figure}
-				\centering
-				\includegraphics[keepaspectratio, width=.5\linewidth]{images/bbme-3-res.png}
-			\end{figure}
-		\end{column}
-	\end{columns}
+	BBME algorithm presented in Zhu and Ma, 2000. Better performances thant classic algorithms (TSS) and comparable to latest (NTSS), yet more efficient in computation.
+
+    \bigskip
+    It uses two different search patterns, both of which are diamond-shaped:
+    \begin{itemize}
+        \item large diamond search pattern (LDSP)
+        \item small diamond search pattern (SDSP)
+    \end{itemize}
+    \begin{figure}
+        \centering
+        \includegraphics[keepaspectratio,width=.5\linewidth]{images/ds-search-patterns.png}
+        \caption{The shape of LDSP and SDSP}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{DS algorithm}
+    \begin{block}{Diamond search procedure}
+        For each block:
+        \begin{enumerate}
+            \item place LDSP in the center of the block and compute DFD for every of the 9 displacement;
+            \begin{itemize}
+                \item if the minimum DFD is in the center position, then go to 3
+                \item else, go to 2
+            \end{itemize}
+            \item replace LDSP in the minimum DFD of the previous operation and recompute DFD;
+            \begin{itemize}
+                \item if the minimum DFD is in the center position, then go to 3
+                \item else, repeat 
+            \end{itemize}
+            \item place SDSP, compute DFD and return coordinates of the minum DFD block as motion vector
+        \end{enumerate}
+    \end{block}
+\end{frame}
+
+\begin{frame}{DS algorithm visualized}
+    \begin{figure}
+        \centering
+        \includegraphics[keepaspectratio,width=.45\linewidth]{images/ds-exe.png}
+        \caption{Example of a full execution cycle of diamond search}
+    \end{figure}    
+\end{frame}
+
+\begin{frame}{DS results}
+	\begin{figure}[H]
+		\begin{minipage}[b]{0.45\textwidth}
+            \centering
+            \includegraphics[keepaspectratio, width=.55\linewidth]{images/bbme-im.png}
+            \label{fig:bbme-3-im}
+            \subcaption{Target frame}
+		\end{minipage}%
+		\begin{minipage}[b]{0.45\textwidth}
+            \centering
+            \includegraphics[keepaspectratio, width=.55\linewidth]{images/bbme-3-res.png}
+            \label{fig:bbme-3-res}
+            \subcaption{Needle diagram}
+		\end{minipage}
+        \label{fig:bbme-3}
+        \caption{Motion field result of our DS implementation}
+	\end{figure}
 \end{frame}
 
 \subsection{The affine model}
