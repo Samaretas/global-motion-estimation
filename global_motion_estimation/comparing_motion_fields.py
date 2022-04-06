@@ -5,8 +5,8 @@ import motion as motion
 import os
 import cv2
 
-video_path = os.path.join(os.path.abspath('.'), 'resources', 'videos', 'pan240.mp4')
-save_path = os.path.join(os.path.abspath('.'), 'results', 'pan_robust_affine', '')
+video_path = os.path.join(os.path.abspath('.'), 'resources', 'videos', 'foreman_qcif.y4m')
+save_path = os.path.join(os.path.abspath('.'), 'results', 'foreman_qcif', '')
 
 if __name__ == "__main__":
     """Computes the motion field using BBME and GME, then shows the result to make a visual comparison between the two methods."""
