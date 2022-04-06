@@ -546,11 +546,12 @@ def rescale_motion_field(motion_field, scale=2):
     return mf
 
 
-def hierarchical_threestep(
+def hierarchical_wrapper(
     previous,
     current,
     block_size=10,
     search_window=4,
+    searching_procedure=3
 ):
     """Hierarchical search implemented as threestep search.
     Computes the motion field with the threestep search in a hierarchical fashion.
@@ -573,7 +574,7 @@ def hierarchical_threestep(
         previous_pyr[0],
         current_pyr[0],
         block_size=block_size,
-        searching_procedure=3,
+        searching_procedure=searching_procedure,
         search_window=search_window,
     )
 
@@ -626,18 +627,27 @@ def main(args):
         searching_procedure=args.searching_procedure,
         search_window=args.search_window,
     )
-    motion_field_hierarchical = hierarchical_threestep(
+    motion_field_hierarchical = hierarchical_wrapper(
         previous,
         current,
         block_size=args.block_size,
         search_window=args.search_window,
+        searching_procedure=args.searching_procedure
     )
     # print(motion_field)
 
-    draw = draw_motion_field(previous, motion_field_hierarchical)
-    cv2.imwrite(os.path.join("resources/images/motion_field_hierarchical.png"), draw)
-    draw = draw_motion_field(previous, motion_field)
-    cv2.imwrite(os.path.join("resources/images/motion_field_threestep.png"), draw)
+    # draw = draw_motion_field(previous, motion_field_hierarchical)
+    # cv2.imwrite(os.path.join("resources", "images", "motion_field_hierarchical.png"), draw)
+    # draw = draw_motion_field(previous, motion_field)
+    # cv2.imwrite(os.path.join("resources", "images", "motion_field_threestep.png"), draw)
+
+    draw = draw_motion_field(current, motion_field)
+    draw_h = draw_motion_field(previous, motion_field_hierarchical)
+    cv2.imwrite(os.path.join('resources', 'images', f'{args.searching_procedure}-res.png'), draw)
+    cv2.imwrite(os.path.join('resources', 'images', f'{args.searching_procedure}h-res.png'), draw_h)
+    # cv2.imshow("motionf field", draw)
+    # cv2.waitKey(0)
+
 
 
 if __name__ == "__main__":
