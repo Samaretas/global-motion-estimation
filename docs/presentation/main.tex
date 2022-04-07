@@ -58,8 +58,8 @@
     \begin{itemize}
         \item a broad introduction to the problem of global motion estimation
         \item an overview of the theoretical foundations of our solution
-        \item the framework we developed from the aforementioned literature
-        \item an analysis of the performances of our solution
+        \item the framework we developed from the aforementioed literature
+        \item an analysis of the performances of our solution 
         \item a brief discussion of the limitations and possible improvements
     \end{itemize}
 \end{frame}
@@ -81,7 +81,7 @@
             \end{column}
             \begin{column}{0.4\textwidth}
                 \begin{center}
-                    \animategraphics[loop,autoplay,width=.7\linewidth]{20}{gifs/pan240/pan240-}{0}{40}
+                    \animategraphics[loop,controls,width=.7\linewidth]{20}{gifs/pan240/pan240-}{0}{40}
                 \end{center}
             \end{column}
         \end{columns} 
@@ -93,7 +93,7 @@
     \bigskip
     \begin{itemize}
         \item \textit{camera movements described motion models projectve polynomial affine}
-        \item removing camera motion is useful in a virety of applications:
+        \item removing camera motion is useful in a variety of applications:
         \begin{itemize}
             \item when dealing unwanted motion from a video 
             \item when we are interested in the ego-motion
@@ -101,7 +101,7 @@
     \end{itemize}    
 \end{frame}
 
-\section{Literature}
+\section{Theory}
 \begin{frame}{Dealing with GME}
     Most of the existing algorithms that deal with global motion estimation assume that camera motion can be described as a  \bold{parameterized motion model}.
     \begin{block}{Parameterized motion model}
@@ -192,25 +192,12 @@
             \subcaption{Needle diagram}
             \label{fig:bbme-1-res}
 		\end{minipage}
-        \label{fig:bbme-1}
-        \caption{Motion field result of our TSS implementation}
-	\end{figure}
-\end{frame}
-
-\begin{frame}{Hierarchical TSS}
-    \begin{figure}[H]
-		\begin{minipage}{.45\textwidth}
-            \centering
-            \includegraphics[keepaspectratio, width=.55\linewidth]{images/bbme-im.png}
-            \subcaption{Target frame}
-            \label{fig:bbme-1-im}
-		\end{minipage}
-		\begin{minipage}{.45\textwidth}
-            \centering
-            \includegraphics[keepaspectratio, width=.55\linewidth]{images/bbme-1-res.png}
-            \subcaption{Needle diagram}
-            \label{fig:bbme-1-res}
-		\end{minipage}
+		% \begin{minipage}{.3\textwidth}
+        %     \centering
+        %     \includegraphics[keepaspectratio, width=.8\linewidth]{images/bbme-1-res.png}
+        %     \subcaption{Hierarchical version}
+        %     \label{fig:bbme-h1-res}
+		% \end{minipage}
         \label{fig:bbme-1}
         \caption{Motion field result of our TSS implementation}
 	\end{figure}
@@ -237,9 +224,9 @@
 
 \subsubsection*{Diamond search BBME}
 \begin{frame}{Diamond search}
-	BBME algorithm presented in Zhu and Ma, 2000. Better performances thant classic algorithms (TSS) and comparable to latest (NTSS), yet more efficient in computation.
-
+	BBME algorithm presented in Zhu and Ma, 2000. Better performances thant classic algorithms (TSS) and comparable to latest ones (NTSS), yet more efficient in computation.
     \bigskip
+    
     It uses two different search patterns, both of which are diamond-shaped:
     \begin{itemize}
         \item large diamond search pattern (LDSP)
@@ -256,7 +243,7 @@
     \begin{block}{Diamond search procedure}
         For each block:
         \begin{enumerate}
-            \item place LDSP in the center of the block and compute DFD for every of the 9 displacement;
+            \item place LDSP in the center of the block and compute DFD for all of the 9 displacements;
             \begin{itemize}
                 \item if the minimum DFD is in the center position, then go to 3
                 \item else, go to 2
@@ -305,18 +292,12 @@
 
 \subsection{Refinement: robust and hierarchical GME}
 
-\subsection{Motion compensation}
-\begin{frame}{Compensation}
-%     \includemedia[
-%     activate=onclick,
-%     width=0.5\textwidth
-% ]{\includegraphics{gifs/pan240/pan240-0.png}}{videos/pan240.flv}
-% \movie[externalviewer]{\includegraphics{gifs/pan240/pan240-0.png}}{../assets/videos/pan240.mp4}
-% \href{run:../assets/videos/pan240.mp4}{text}
-\end{frame}
 
 \section{Evaluation}
-\subsection{Qualitative: compensation}
+\subsection{Qualitative: motion compensation}
+\begin{frame}{Compensation}
+
+\end{frame}
 \subsection{Quantitative: PSNR}
 
 \section{Conclusions}
