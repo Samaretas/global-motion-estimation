@@ -19,7 +19,11 @@
 %     ../assets/
 % }
 
+
+% args: big, bigg, Big, Bigg
+\newcommand{\parenth}[2][]{#1(#2#1)}
 \renewcommand{\bold}[1]{\textbf{\structure{#1}}}
+
 
   
 \author[Conti \and Daniotti]{Samuele Conti \and Filippo Daniotti}
@@ -81,7 +85,7 @@
             \end{column}
             \begin{column}{0.4\textwidth}
                 \begin{center}
-                    \animategraphics[loop,controls,width=.7\linewidth]{20}{gifs/pan240/pan240-}{0}{40}
+                    \animategraphics[loop,autoplay,width=.7\linewidth]{20}{gifs/pan240/pan240-}{0}{40}
                 \end{center}
             \end{column}
         \end{columns} 
@@ -119,14 +123,43 @@
 \end{frame}
 
 \begin{frame}{Estimating parameters}
-    Once the choice of the motion model has been made, there are two main approaches for estimating the parameters
+    Once the choice of the motion model has been made, there are two main approaches for estimating the parameters, both of which aim to minimize a prediciton error
     \bigskip
     \begin{itemize}
-        \item direct methods
-        \item indirect methods
+        \item \bold{direct methods} work in the pixel domain when computing the prediction error
+        \item \bold{indirect methods} compute the prediciton error by comparing the motion field given by the current model parameters with a ground truth obtained by other procedures
     \end{itemize}
     \bigskip
     For our solution we went for \bold{indirect} methods
+\end{frame}
+
+\begin{frame}{Indirect parameter estimation}
+
+    \begin{block}{Fitting error}
+        Given a motion field \(d(x)\) computed at a set of sufficiently dense points \(x \in \Lambda ' \subset \Lambda \) and the motion field \(d(x;a)\) given by the model w/ current parameters \(a\), we compute the fitting error as
+        \begin{equation*}
+            E_{\textrm{fit}} = \sum_{x \in \Lambda '} | d(x;a) - d(x) |^p
+        \end{equation*}
+
+    \end{block}
+
+    GM can be described as a polynomial function, so \(d(x;a)\) is a linear function of \(a\)
+
+    \bigskip
+    
+    Assuming \(p = 2\) we can compute \(a\) minimizing \(E_{\textrm{fit}}\)
+
+    \label{eq:min-fit-err}
+    \begin{equation}
+        \frac{\partial E_{\textrm{fit}}}{\partial a} = 0 
+        \quad
+        \Rightarrow 
+        \quad
+        a = \parenth[\Bigg]{\sum_{x \in \Lambda '} [A(x)]^T[A(x)]}^{-1}\parenth[\Bigg]{\sum_{x \in \Lambda '} [A(x)]^d(x)}
+    \end{equation}
+
+
+
 \end{frame}
 
 \section{Implementation}
@@ -140,7 +173,7 @@
     \end{enumerate}
 \end{frame}
 
-\subsection{Dense motion estimation}
+\subsection{Motion estimation}
 \begin{frame}{Block-based motion estimation}
 	The affine model requires a dense motion field when computing the parameters, which we compute via a block-based approach
 
@@ -285,12 +318,22 @@
 	\end{figure}
 \end{frame}
 
-\subsection{The affine model}
-\begin{frame}{Affine model}
-    
+\subsection{Global motion estimation}
+\begin{frame}{The affine model}
+    It features a six parameters vector \(a = [a_0, a_1, a_2, b_0, b_1, b_2]\)
+
+    \begin{equation*}
+        [A(x)] = 
+        \begin{bmatrix}
+            1 & x & y & 0 & 0 & 0 \\
+            0 & 0 & 0 & 1 & x & y
+        \end{bmatrix}
+    \end{equation*}
 \end{frame}
 
-\subsection{Refinement: robust and hierarchical GME}
+\begin{frame}{Robust}
+    
+\end{frame}
 
 
 \section{Evaluation}
