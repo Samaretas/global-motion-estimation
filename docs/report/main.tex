@@ -17,7 +17,6 @@
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \newcommand{\red}[1]{\textcolor{red}{#1}}
 
-\graphicspath{../}
 \hypersetup{
     colorlinks=true,
     linkcolor=black,
@@ -51,7 +50,8 @@ samuele.conti@studenti.unitn.it\\
 \pagestyle{plain}
 
 \begin{abstract}
-The problem of global motion estimation (GME) deals with the separation, in a video sequence, of two different types of motion: the \emph{egomotion} of the camera recording the video, and the actual motion of the objects recorded. The literature presents a number of possible approaches to the GME problem; here, we aim to combine some of the most effective strategies to compute the motion of the camera. We adopt an indirect approach based on a perspective motion model (as \cite{Dufeaux2000}). Following a multi-resolution approach, at the lower-resolution level, we use block matching estimation to get a dense motion field; then, at each following (higher-resolution) level we optimize the current parameters of the motion model with gradient descent. During the process of gradient descent the outliers are discarded, in order to get a robust estimation. The final result consists in the optimized list of parameters of the motion model.  
+The problem of global motion estimation (GME) deals with the separation, in a video sequence, of two different types of motion: the \emph{egomotion} of the camera recording the video, and the actual motion of the objects recorded. The literature presents a number of possible approaches to the GME problem; here, we aim to combine some of the most effective strategies to compute the motion of the camera. We adopt an indirect approach based on the affine motion model. Following a multi-resolution approach, at each level we compute the parameters of the motion model that minimize the error of the motion field. Then, we use those parameters to spot the outliers of the motion field in the next level; when computing the optimal parameters in the next level, we remove the detected outliers, so to obtain a robust estimation.
+Results are reported both in a qualitative and quantitative way.  
 \end{abstract}
 
 \begin{IEEEkeywords}
