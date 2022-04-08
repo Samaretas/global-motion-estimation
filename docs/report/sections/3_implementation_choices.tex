@@ -3,10 +3,9 @@
 Describe the choices with links to the previous section.
 Insert pseudocode of the implementation.
 
-As stated in \cref{sec:motion-models}, we decided to use an indirect method with affine model for motion estimation as in \cite{Bergen92}.
-Also, we decided to obtain a robust estimation by using a strategy similar to \cite{Dufeaux2000}, where they adopt a hierarchical approach to obtain a robust estimation using coarse resolution to guide the search for the best parameters at a finer resolution.
+As stated in \cref{sec:motion-models}, we decided to use an indirect method with affine model for motion estimation as in Bergen et al.\cite{Bergen92}; also, we decided to obtain a robust estimation by using a strategy similar to Dufaux and Konrad\cite{Dufeaux2000}, where they adopt a hierarchical approach to obtain a robust estimation using coarse resolution to guide the search for the best parameters at a finer resolution.
 
-In the following sections, we will explain the implementation choices in detail and present the pseudocode of the algorithm. A schematic representation of the algorithm is presented in \cref{fig:gme-schema}.
+In the following sections, we will provide an in-depth explaination of our solution and present the pseudocode of the algorithm. A schematic representation of the procedure is presented in \cref{fig:gme-schema}.
 
 \begin{figure}
     \centering
@@ -15,14 +14,14 @@ In the following sections, we will explain the implementation choices in detail 
     \label{fig:gme-schema}
 \end{figure}
 
-\subsection{Block Matching Motion Estimation}
-\label{sec:BMME}
+\subsection{Block-Based Motion Estimation}
+\label{sec:BBME}
 The first piece of the architecture is the algorithm to compute the motion field to be used as ground truth.
-In our case, we decided to implement a block matching motion estimation (BMME), because computing the motion field on blocks, rather than single pixels, can be much less computationally expensive.
+In our case, we decided to implement a block matching motion estimation (BBME), as computing the motion field on blocks, rather than single pixels, can be much less computationally expensive.
 
-The main idea of BMME is to divide the frame in blocks, and search for each block in the previous frame the corresponding block in the next frame.
+The main idea of BBME is to divide the frame in blocks, and search for each block in the previous frame the corresponding block in the next frame.
 This gives us the displacement of the block between the two frames, which is treated as the motion vector of the block.
-This is the basic principle of BMME, from which derived a number of implementations that present differences mainly in two aspects:
+This is the basic principle of BBME, from which derived a number of implementations that present differences mainly in two aspects:
 \begin{enumerate}
     \item the size and shape of the block;
     \item the path that the searching procedure follows.
@@ -32,7 +31,7 @@ During the project we implemented a number of these techniques:
 \begin{itemize}
     \item exhaustive search;
     \item two-dimensional logarithmic search;
-    \item three-step search, from \cite{Li94};
+    \item \blue{new} three-step search, from \cite{Li94};
     \item diamond search, from \cite{Zhu2000};
 \end{itemize}
 
@@ -40,12 +39,23 @@ In the final implementation, the block matching method used is the one presented
 Nonetheless, all the other methods are still present and by slightly changing the code they can be tested as well.
 
 Here we briefly discuss the algorithm that we choose to implement and propose a small example for clarification.
-The DS algorithm defines a peculiar diamond-shaped search pattern, which defines which positions will be used as target points where to center the block in the next frame to see if it corresponds to the block in the previous frame.
+The DS algorithm uses a peculiar diamond-shaped search pattern, which defines which positions will be used as target points where to center the block in the next frame to see if it corresponds to the block in the previous frame. In particular, the algorithm uses two slighlty different shapes depending on the current iteration (see \cref*{fig:ds-search-patterns}):
+\begin{itemize}
+    \item large diamond search pattern;
+    \item small diamond search pattern.
+\end{itemize}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=.95\linewidth]{../assets/images/ds-search-patterns.png}
+    \caption{Representation of the two DS algorithm search patterns}
+    \label{fig:ds-search-patterns}
+\end{figure}
 
 The procedure is the following:
 \begin{enumerate}
-    \item the search starts with a large diamond, meaning that we check the blocks centered in each one of the 9 positions defined by the large diamond, if the best match is the central position then we pass to the second step, otherwise we move to the best match position and re-use the large diamond;
-    \item in the second step we use a smaller diamond shape and look again for the best matching position among the 5 possible defined by the small diamond, then return the best match position.
+    \item the search starts with LDSP, meaning that we check the blocks centered in each one of the 9 positions; if the best match is the central position then we pass to the second step, otherwise we move to the best match position and re-use the LDSP;
+    \item in the second step we use SDSP and look again for the best matching position among the 5 available, then return the best match position.
 \end{enumerate}
 
 \begin{figure}
@@ -74,16 +84,17 @@ where $d(p, a)$ is the displacement for the position $p = \{x,y\}$, given the pa
     \end{bmatrix}
 \end{equation*}
 
-By encoding the estimation of the motion field in this way, the p-norm error we are trying to minimize (see \cref{eq:indirect-estimation}), gets rewritten in this way:
+By encoding the estimation of the motion field in this way, the $p$-norm error we are trying to minimize (see \cref{eq:indirect-estimation}), gets rewritten in this way:
 
 \begin{equation}
     \label{eq:pnorm-error}
     E = \sum_p{\left| d(p, a) - d(p) \right|^P}
 \end{equation}
-where we introduce $d(p)$ as the ground truth motion vector (the one we get from the BMME as in \cref{sec:BMME}) and $P$ which specifies the grade of the p-norm used. In this case we decided to set $P=2$, following the procedure explained in \cite{WangBook}.
+Here we introduce $d(p)$ as the ground truth motion vector (the one we get from the BBME as in \cref{sec:BBME}) and $P$ which specifies the grade of the $p$-norm used. In this case we decided to set $P=2$, following the procedure explained in \cite{WangBook}.
+\blue{why do you use capital P tho}
 
-Now the question is: how do we minimize the error expressed as in \cref{eq:pnorm-error} with respect to the parameter vector $p$?
-The procedure to minimize the error states that we need to compute the gradient of $E$ w.r.t $p$, and then get the value of $p$ that sets the gradient to 0.
+The next step is to minimize the error in \cref{eq:pnorm-error} with respect to the parameter vector $p$.
+The procedure in \cite{WangBook} states that we need to compute the gradient of $E$ w.r.t $p$, and then get the value of $p$ that sets the gradient to 0.
 
 By using the matrix formulation explained in \cref{eq:displacement-matrix-formulation} and by setting the gradient $\nabla_a E = 0$, we obtain the following result:
 \begin{equation}
@@ -93,7 +104,7 @@ By using the matrix formulation explained in \cref{eq:displacement-matrix-formul
 
 There are three interesting notes about \cref{eq:optimal-parameter-affine}:
 \begin{enumerate}
-    \item we are iterating over a set of positions $p$: it's interesting to notice that these points do not need to cover the complete scene, namely, we can use only a subset of the image to optimize the parameters;
+    \item we are iterating over a set of positions $p$: it's interesting to notice that these points do not need to cover the complete scene, i.e. we can use only a subset of the image to optimize the parameters;
     \item each one of the points can be weighted with a weight $w(p)$ as shown in \cref{eq:optimal-parameter-affine-weighted};
     \item we can actually split the computation of the parameter vector $a = [a_1, a_2, a_3, b_1, b_2, b_3]$ in two different slices, $a_x = [a_1, a_2, a_3]$ and $a_y = [b_1, b_2, b_3]$, which can be computed in a specular way as shown in \cref{eq:optimal-parameter-affine-weighted-halved} this is useful to further reduce the complexity of the procedure.
 \end{enumerate} 
