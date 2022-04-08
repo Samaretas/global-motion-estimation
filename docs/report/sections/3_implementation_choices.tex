@@ -16,6 +16,7 @@ In the following sections, we will explain the implementation choices in detail 
 \end{figure}
 
 \subsection{Block Matching Motion Estimation}
+\label{sec:BMME}
 The first piece of the architecture is the algorithm to compute the motion field to be used as ground truth.
 In our case, we decided to implement a block matching motion estimation (BMME), because computing the motion field on blocks, rather than single pixels, can be much less computationally expensive.
 
@@ -60,21 +61,57 @@ In this example the block matching algorithm started from $\{0,0\}$, then moved 
 \subsection{Affine Model Parameter Estimation}
 In \cref{sec:motion-models}, we presented the affine motion model, which is the one we decided to use in our implementation.
 
-To get the motion vector of a certain position $\{x,y\}$ in the previous frame, we can solve the following matrix formulation of the model:
+To get the motion vector of a certain position $\{x,y\}$ in the previous frame, we can solve the following formulation of the affine model:
 \begin{equation}
+    \label{eq:displacement-matrix-formulation}
     d(p, a) = A(p)\;a
 \end{equation}
-where $d(p, a)$ is the displacement for the position $p$, given the parameter vector $a$; $A(p)$ is an intermediate matrix that is computed as 
+where $d(p, a)$ is the displacement for the position $p = \{x,y\}$, given the parameter vector $a$; $A(p)$ is an intermediate matrix that is computed as 
 \begin{equation*}
-    A = \begin{bmatrix}
+    A(p) = \begin{bmatrix}
         1 & x & y & 0 & 0 & 0 \\
         0 & 0 & 0 & 1 & x & y
     \end{bmatrix}
 \end{equation*}
 
-\red{copy here formulas page 188}
+By encoding the estimation of the motion field in this way, the p-norm error we are trying to minimize (see \cref{eq:indirect-estimation}), gets rewritten in this way:
 
+\begin{equation}
+    \label{eq:pnorm-error}
+    E = \sum_p{\left| d(p, a) - d(p) \right|^P}
+\end{equation}
+where we introduce $d(p)$ as the ground truth motion vector (the one we get from the BMME as in \cref{sec:BMME}) and $P$ which specifies the grade of the p-norm used. In this case we decided to set $P=2$, following the procedure explained in \cite{WangBook}.
 
+Now the question is: how do we minimize the error expressed as in \cref{eq:pnorm-error} with respect to the parameter vector $p$?
+The procedure to minimize the error states that we need to compute the gradient of $E$ w.r.t $p$, and then get the value of $p$ that sets the gradient to 0.
 
+By using the matrix formulation explained in \cref{eq:displacement-matrix-formulation} and by setting the gradient $\nabla_a E = 0$, we obtain the following result:
+\begin{equation}
+    \label{eq:optimal-parameter-affine}
+    a = \left (\sum_p A(p)^T A(p) \right )^{-1} \left (\sum_p A(p)^T d(x) \right)
+\end{equation}
+
+There are three interesting notes about \cref{eq:optimal-parameter-affine}:
+\begin{enumerate}
+    \item we are iterating over a set of positions $p$: it's interesting to notice that these points do not need to cover the complete scene, namely, we can use only a subset of the image to optimize the parameters;
+    \item each one of the points can be weighted with a weight $w(p)$ as shown in \cref{eq:optimal-parameter-affine-weighted};
+    \item we can actually split the computation of the parameter vector $a = [a_1, a_2, a_3, b_1, b_2, b_3]$ in two different slices, $a_x = [a_1, a_2, a_3]$ and $a_y = [b_1, b_2, b_3]$, which can be computed in a specular way as shown in \cref{eq:optimal-parameter-affine-weighted-halved} this is useful to further reduce the complexity of the procedure.
+\end{enumerate} 
+
+\begin{equation}
+    \label{eq:optimal-parameter-affine-weighted}
+    a = \left (\sum_p w(p) A(p)^T A(p) \right )^{-1} \left (\sum_p w(p) A(p)^T d(x) \right)
+\end{equation}
+
+\begin{equation}
+    \label{eq:optimal-parameter-affine-weighted-halved}
+    a_x = \left (\sum_p w(p) A_x(p)^T A_x(p) \right )^{-1} \left (\sum_p w(p) A_x(p)^T d_x(x) \right)
+\end{equation}
+where $A_x(p) = [1,x,y]$.
+
+The form of the solution that we used in the implementation is the one reported in \cref{eq:optimal-parameter-affine-weighted-halved}.
 
 \subsection{Hierarchical Robust Estimation}
+There is still one last strategy employed in the project, which is used to provide a robust estimation of the parameters for the affine motion model.
+
+The strategy employed here takes inspiration from \cite{Dufeaux2000}, where the computation of the motion field takes place at different levels of resolution. The idea is to exploit the computation at a coarser resolution to extract information useful for regularizing the estimation at finer resolutions.
