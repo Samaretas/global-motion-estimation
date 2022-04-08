@@ -28,7 +28,7 @@
   
 \author[Conti \and Daniotti]{Samuele Conti \and Filippo Daniotti}
 \title[Global Motion Estimation]{\textsc{Global Motion Estimation}}
-\subtitle{A robust and hierarchical approach}
+\subtitle{An indirect, multiscale and robust approach}
 \institute[DISI - University of Trento]{Department of Information Engineering\\and Computer Science}
 \date{April 20, 2022}
 
@@ -105,25 +105,28 @@
     \end{itemize}    
 \end{frame}
 
-\section{Theory}
+% \section{Theory}
 \begin{frame}{Dealing with GME}
     Most of the existing algorithms that deal with global motion estimation assume that camera motion can be described as a  \bold{parameterized motion model}.
     \begin{block}{Parameterized motion model}
-        It is an equation that describes the expected shape of the motion vector for each still pixel, given a certain movement of the camera
+        An equation that describes the expected shape of the motion vector for each still pixel, given a certain movement of the camera
     \end{block}
     \bigskip
-    Different models describe different types of motion (translation, rotation, panning, et cetera)
-    \begin{exampleblock}{Well-established models}
+    Different global motion patterns (translation, rotation, panning, et cetera) are described by different models
+    \begin{exampleblock}{Some well-known global motion models}
         \begin{itemize}
             \item translation model
-            \item affine model (our choice)
+            \item affine model
             \item projective model
         \end{itemize}
     \end{exampleblock}
 \end{frame}
 
 \begin{frame}{Estimating parameters}
-    Once the choice of the motion model has been made, there are two main approaches for estimating the parameters, both of which aim to minimize a prediciton error
+    Once the model is chosen, it is necessary estimate its parameters vector \(a\)
+    \bigskip 
+
+    There are two main approaches, both of which aim to minimize a prediction error
     \bigskip
     \begin{itemize}
         \item \bold{direct methods} work in the pixel domain when computing the prediction error
@@ -136,27 +139,30 @@
 \begin{frame}{Indirect parameter estimation}
 
     \begin{block}{Fitting error}
-        Given a motion field \(d(x)\) computed at a set of sufficiently dense points \(x \in \Lambda ' \subset \Lambda \) and the motion field \(d(x;a)\) given by the model w/ current parameters \(a\), we compute the fitting error as
-        \begin{equation*}
+        Compare ground truth \(d(x)\) to the estimate with current params \(d(x;a)\)
+        % Given a motion field \(d(x)\) computed at a set of sufficiently dense points \(x \in \Lambda ' \subset \Lambda \) and the motion field \(d(x;a)\) given by the model w/ current parameters \(a\), we compute the fitting error as
+        \begin{equation}
+            \label{eq:fitting-error}
             E_{\textrm{fit}} = \sum_{x \in \Lambda '} | d(x;a) - d(x) |^p
-        \end{equation*}
+        \end{equation}
 
     \end{block}
 
-    GM can be described as a polynomial function, so \(d(x;a)\) is a linear function of \(a\)
-
-    \bigskip
+    Global motion can be approximed as a polynomial function, so \(d(x;a)\) is a linear function of \(a\) \(\to\) \(d(x;a) = [A(x)]a\)
+    % \bigskip
     
-    Assuming \(p = 2\) we can compute \(a\) minimizing \(E_{\textrm{fit}}\)
-
-    \label{eq:min-fit-err}
-    \begin{equation}
-        \frac{\partial E_{\textrm{fit}}}{\partial a} = 0 
-        \quad
-        \Rightarrow 
-        \quad
-        a = \parenth[\Bigg]{\sum_{x \in \Lambda '} [A(x)]^T[A(x)]}^{-1}\parenth[\Bigg]{\sum_{x \in \Lambda '} [A(x)]^d(x)}
-    \end{equation}
+    \begin{block}{Minimizing the error}
+        Assuming \(p = 2\) we can recompute \(a\) minimizing \(E_{\textrm{fit}}\) as follows
+    
+        \begin{equation}
+            \label{eq:min-fit-err}
+            \frac{\partial E_{\textrm{fit}}}{\partial a} = 0 
+            \quad
+            \Rightarrow 
+            \quad
+            a = \parenth[\Bigg]{\sum_{x \in \Lambda '} [A(x)]^T[A(x)]}^{-1}\parenth[\Bigg]{\sum_{x \in \Lambda '} [A(x)]d(x)}
+        \end{equation}    
+    \end{block}
 
 
 
@@ -167,9 +173,9 @@
     Three are the main operations that constitute the framework that we have developed:
     \bigskip
     \begin{enumerate}
-        \item \bold{motion estimation}: compute a dense motion field for a given frame
-        \item \bold{global motion estimation}: compute the motion model parameters
-        \item \bold{motion compensation}: subtract GME from the dense motion field to get a compensated frame
+        \item \bold{motion estimation}: compute a dense motion field for a given frame to use as ground truth
+        \item \bold{global motion estimation}: estimate the best parameters for the affine model
+        % \item \bold{motion compensation}: subtract GME from the dense motion field to get a compensated frame
     \end{enumerate}
 \end{frame}
 
@@ -320,8 +326,10 @@
 
 \subsection{Global motion estimation}
 \begin{frame}{The affine model}
-    It features a six parameters vector \(a = [a_0, a_1, a_2, b_0, b_1, b_2]\)
+    It features a six parameters vector \(a = [a_0, a_1, a_2, b_0, b_1, b_2]^T\)
+    \bigskip
 
+    The parameter matrix looks like this
     \begin{equation*}
         [A(x)] = 
         \begin{bmatrix}
