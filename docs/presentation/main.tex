@@ -69,114 +69,131 @@
 \end{frame}
 
 \section{The problem}
-\begin{frame}{Motion estimation}
-    The problem of motion estimation aims to produce an estimate of the movement of the objects in a video
+\begin{frame}{Global motion estimation}
+    The motion in videos can be analized as the displacement of pixel per pair of frames
     \bigskip
-    \begin{itemize}
-        \item idea: the difference between two frames gives information on the motion in the scene
-        \item ideally, we could be able to estimate the direction and velocity of any object of interest
-        \item in fact, the problem is quite convoluted
-        \begin{columns}
-            \begin{column}{0.4\textwidth}
-                \begin{itemize}
-                    \item the motion in a scene is often a combination of multiple moving object
-                    \item alongside local motion of actors, there may be camera movements that affect the whole image
-                \end{itemize}
-            \end{column}
-            \begin{column}{0.4\textwidth}
-                \begin{center}
-                    \animategraphics[loop,autoplay,width=.7\linewidth]{20}{gifs/pan240/pan240-}{0}{40}
-                \end{center}
-            \end{column}
-        \end{columns} 
-    \end{itemize}
+
+    \begin{columns}
+        \begin{column}{0.45\textwidth}
+            Is usually the combination of two different motions:
+            \begin{itemize}
+                \item the actual motion of objects in the scene
+                \item the egomotion of the camera
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \begin{figure}[H]
+                \animategraphics[loop,autoplay,width=.6\linewidth]{20}{gifs/pan240/pan240-}{0}{40}
+                \caption{Local motion vs. egomotion}
+            \end{figure}
+        \end{column}
+    \end{columns}
+
+    \begin{alertblock}{The problem}
+        Global motion estimation aims to extract the camera global motion patterns in a video
+    \end{alertblock}
 \end{frame}
 
-\begin{frame}{Global motion stimation}
-    Global motion estimation aims to compute an estimate of the global motion patterns introduced by the camera
+\begin{frame}{Motion models}
+    Motion models describe camera motion patterns through equations
     \bigskip
-    \begin{itemize}
-        \item \textit{camera movements described motion models projectve polynomial affine}
-        \item removing camera motion is useful in a variety of applications:
-        \begin{itemize}
-            \item when dealing unwanted motion from a video 
-            \item when we are interested in the ego-motion
-        \end{itemize}
-    \end{itemize}    
+    \begin{columns}
+        \begin{column}{0.35\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=.7\linewidth]{../assets/images/camera-movement.png}
+                \caption{Different models describe different types of camera motion}
+                \label{fig:camera-motion}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.65\textwidth}
+            The displacement of a pixel across frames as a function of some parameters
+            \input{../assets/math/affine-model-representation.tex}
+            E.g. for the \bold{affine model} (our choice) parameter vecotr is \(a = [a_0, a_1, a_2, b_0, b_1, b_2]\)
+        \end{column}
+    \end{columns}
 \end{frame}
 
 % \section{Theory}
-\begin{frame}{Dealing with GME}
-    Most of the existing algorithms that deal with global motion estimation assume that camera motion can be described as a  \bold{parameterized motion model}.
-    \begin{block}{Parameterized motion model}
-        An equation that describes the expected shape of the motion vector for each still pixel, given a certain movement of the camera
-    \end{block}
-    \bigskip
-    Different global motion patterns (translation, rotation, panning, et cetera) are described by different models
-    \begin{exampleblock}{Some well-known global motion models}
-        \begin{itemize}
-            \item translation model
-            \item affine model
-            \item projective model
-        \end{itemize}
-    \end{exampleblock}
-\end{frame}
+% \begin{frame}{Dealing with GME}
+%     Most of the existing algorithms that deal with global motion estimation assume that camera motion can be described as a  \bold{parameterized motion model}.
+%     \begin{block}{Parameterized motion model}
+%         An equation that describes the expected shape of the motion vector for each still pixel, given a certain movement of the camera
+%     \end{block}
+%     \bigskip
+%     Different global motion patterns (translation, rotation, panning, et cetera) are described by different models
+%     \begin{exampleblock}{Some well-known global motion models}
+%         \begin{itemize}
+%             \item translation model
+%             \item affine model
+%             \item projective model
+%         \end{itemize}
+%     \end{exampleblock}
+% \end{frame}
 
 \begin{frame}{Estimating parameters}
-    Once the model is chosen, it is necessary estimate its parameters vector \(a\)
-    \bigskip 
-
     There are two main approaches, both of which aim to minimize a prediction error
     \bigskip
     \begin{itemize}
-        \item \bold{direct methods} work in the pixel domain when computing the prediction error
-        \item \bold{indirect methods} compute the prediciton error by comparing the motion field given by the current model parameters with a ground truth obtained by other procedures
+        \item \bold{direct methods} work in the pixel domain
+        \item \bold{indirect methods} work with motion fields
     \end{itemize}
     \bigskip
-    For our solution we went for \bold{indirect} methods
+    For our solution we opted for \bold{indirect methods}
+    \begin{block}{Indirect paramter update}
+        The parameter vector \(a\) is updated by choosing the parameters that minimize the dissimilarity of the \(gt(x)\) and the prediction \(MM(x,a)\) for a point \(x\)
+        \input{../assets/math/indirect-estimation.tex}
+    \end{block}
 \end{frame}
 
-\begin{frame}{Indirect parameter estimation}
+% \begin{frame}{Indirect parameter estimation}
+    % \begin{block}{Fitting error}
+    %     Compare ground truth \(d(x)\) to the estimate with current params \(d(x;a)\)
+    %     % Given a motion field \(d(x)\) computed at a set of sufficiently dense points \(x \in \Lambda ' \subset \Lambda \) and the motion field \(d(x;a)\) given by the model w/ current parameters \(a\), we compute the fitting error as
+    %     \begin{equation}
+    %         \label{eq:fitting-error}
+    %         E = \sum_{x \in \Lambda '} | d(x;a) - d(x) |^p
+    %     \end{equation}
 
-    \begin{block}{Fitting error}
-        Compare ground truth \(d(x)\) to the estimate with current params \(d(x;a)\)
-        % Given a motion field \(d(x)\) computed at a set of sufficiently dense points \(x \in \Lambda ' \subset \Lambda \) and the motion field \(d(x;a)\) given by the model w/ current parameters \(a\), we compute the fitting error as
-        \begin{equation}
-            \label{eq:fitting-error}
-            E_{\textrm{fit}} = \sum_{x \in \Lambda '} | d(x;a) - d(x) |^p
-        \end{equation}
+    % \end{block}
 
-    \end{block}
-
-    Global motion can be approximed as a polynomial function, so \(d(x;a)\) is a linear function of \(a\) \(\to\) \(d(x;a) = [A(x)]a\)
-    % \bigskip
+    % Global motion can be approximed as a polynomial function, so \(d(x;a)\) is a linear function of \(a\) \(\to\) \(d(x;a) = [A(x)]a\)
+    % % \bigskip
     
-    \begin{block}{Minimizing the error}
-        Assuming \(p = 2\) we can recompute \(a\) minimizing \(E_{\textrm{fit}}\) as follows
+    % \begin{block}{Minimizing the error}
+    %     Assuming \(p = 2\) we can recompute \(a\) minimizing \(E\) as follows
     
-        \begin{equation}
-            \label{eq:min-fit-err}
-            \frac{\partial E_{\textrm{fit}}}{\partial a} = 0 
-            \quad
-            \Rightarrow 
-            \quad
-            a = \parenth[\Bigg]{\sum_{x \in \Lambda '} [A(x)]^T[A(x)]}^{-1}\parenth[\Bigg]{\sum_{x \in \Lambda '} [A(x)]d(x)}
-        \end{equation}    
-    \end{block}
-
-
-
-\end{frame}
+    %     \begin{equation}
+    %         \label{eq:min-fit-err}
+    %         \frac{\partial E}{\partial a} = 0 
+    %         \quad
+    %         \Rightarrow 
+    %         \quad
+    %         a = \parenth[\Bigg]{\sum_{x \in \Lambda '} [A(x)]^T[A(x)]}^{-1}\parenth[\Bigg]{\sum_{x \in \Lambda '} [A(x)]d(x)}
+    %     \end{equation}    
+    % \end{block}
+% \end{frame}
 
 \section{Implementation}
 \begin{frame}{Overview}
-    Three are the main operations that constitute the framework that we have developed:
-    \bigskip
-    \begin{enumerate}
-        \item \bold{motion estimation}: compute a dense motion field for a given frame to use as ground truth
-        \item \bold{global motion estimation}: estimate the best parameters for the affine model
-        % \item \bold{motion compensation}: subtract GME from the dense motion field to get a compensated frame
-    \end{enumerate}
+    \begin{columns}
+        \begin{column}{0.45\textwidth}
+            \begin{figure}[H]
+                \includegraphics[keepaspectratio,width=.8\textwidth]{images/implementation-flow.png}
+                \caption{Flowchart of our framework}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            Implementation choices:
+            \begin{itemize}
+                \item Affine model
+                \item Indirect method
+                \item Block-based motion estimation
+                \item Multiscale
+                \item Robust
+            \end{itemize}
+        \end{column}
+    \end{columns}
 \end{frame}
 
 \subsection{Motion estimation}
@@ -329,7 +346,7 @@
     It features a six parameters vector \(a = [a_0, a_1, a_2, b_0, b_1, b_2]^T\)
     \bigskip
 
-    The parameter matrix looks like this
+    The parameter matrix looks like this 
     \begin{equation*}
         [A(x)] = 
         \begin{bmatrix}
