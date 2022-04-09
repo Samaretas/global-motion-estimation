@@ -5,7 +5,7 @@ Insert pseudocode of the implementation.
 
 As stated in \cref{sec:motion-models}, we decided to use an indirect method with affine model for motion estimation as in Bergen et al.\cite{Bergen92}; also, we decided to obtain a robust estimation by using a strategy similar to Dufaux and Konrad\cite{Dufeaux2000}, where they adopt a hierarchical approach to obtain a robust estimation using coarse resolution to guide the search for the best parameters at a finer resolution.
 
-In the following sections, we will provide an in-depth explaination of our solution and present the pseudocode of the algorithm. A schematic representation of the procedure is presented in \cref{fig:gme-schema}.
+In the following sections, we will provide an in-depth explaination of our solution and present the pseudocode of the algorithm. A schematic representation of the procedure is presented in \cref{fig:implementation-flow}.
 
 \begin{figure}
     \centering
@@ -72,24 +72,13 @@ In this example the block matching algorithm started from $\{0,0\}$, then moved 
 In \cref{sec:motion-models}, we presented the affine motion model, which is the one we decided to use in our implementation.
 
 To get the motion vector of a certain position $\{x,y\}$ in the previous frame, we can solve the following formulation of the affine model:
-\begin{equation}
-    \label{eq:displacement-matrix-formulation}
-    d(p, a) = A(p)\;a
-\end{equation}
+\input{../assets/math/displacement-matrix-formulation.tex}
 where $d(p, a)$ is the displacement for the position $p = \{x,y\}$, given the parameter vector $a$; $A(p)$ is an intermediate matrix that is computed as 
-\begin{equation*}
-    A(p) = \begin{bmatrix}
-        1 & x & y & 0 & 0 & 0 \\
-        0 & 0 & 0 & 1 & x & y
-    \end{bmatrix}
-\end{equation*}
+\input{../assets/math/affine-model-parameter-matrix.tex}
 
 By encoding the estimation of the motion field in this way, the $p$-norm error we are trying to minimize (see \cref{eq:indirect-estimation}), gets rewritten in this way:
 
-\begin{equation}
-    \label{eq:pnorm-error}
-    E = \sum_p{\left| d(p, a) - d(p) \right|^P}
-\end{equation}
+\input{../assets/math/pnorm-error.tex}
 Here we introduce $d(p)$ as the ground truth motion vector (the one we get from the BBME as in \cref{sec:BBME}) and $P$ which specifies the grade of the $p$-norm used. In this case we decided to set $P=2$, following the procedure explained in \cite{WangBook}.
 \blue{why do you use capital P tho}
 
@@ -97,11 +86,7 @@ The next step is to minimize the error in \cref{eq:pnorm-error} with respect to 
 The procedure in \cite{WangBook} states that we need to compute the gradient of $E$ w.r.t $p$, and then get the value of $p$ that sets the gradient to 0.
 
 By using the matrix formulation explained in \cref{eq:displacement-matrix-formulation} and by setting the gradient $\nabla_a E = 0$, we obtain the following result:
-\begin{equation}
-    \label{eq:optimal-parameter-affine}
-    a = \left (\sum_p A(p)^T A(p) \right )^{-1} \left (\sum_p A(p)^T d(x) \right)
-\end{equation}
-
+\input{../assets/math/optimal-parameter-affine.tex}
 There are three interesting notes about \cref{eq:optimal-parameter-affine}:
 \begin{enumerate}
     \item we are iterating over a set of positions $p$: it's interesting to notice that these points do not need to cover the complete scene, i.e. we can use only a subset of the image to optimize the parameters;
@@ -109,15 +94,8 @@ There are three interesting notes about \cref{eq:optimal-parameter-affine}:
     \item we can actually split the computation of the parameter vector $a = [a_1, a_2, a_3, b_1, b_2, b_3]$ in two different slices, $a_x = [a_1, a_2, a_3]$ and $a_y = [b_1, b_2, b_3]$, which can be computed in a specular way as shown in \cref{eq:optimal-parameter-affine-weighted-halved} this is useful to further reduce the complexity of the procedure.
 \end{enumerate} 
 
-\begin{equation}
-    \label{eq:optimal-parameter-affine-weighted}
-    a = \left (\sum_p w(p) A(p)^T A(p) \right )^{-1} \left (\sum_p w(p) A(p)^T d(x) \right)
-\end{equation}
-
-\begin{equation}
-    \label{eq:optimal-parameter-affine-weighted-halved}
-    a_x = \left (\sum_p w(p) A_x(p)^T A_x(p) \right )^{-1} \left (\sum_p w(p) A_x(p)^T d_x(x) \right)
-\end{equation}
+\input{../assets/math/optimal-parameter-affine-weighted.tex}
+\input{../assets/math/optimal-parameter-affine-weighted-halved.tex}
 where $A_x(p) = [1,x,y]$.
 
 The form of the solution that we used in the implementation is the one reported in \cref{eq:optimal-parameter-affine-weighted-halved}.

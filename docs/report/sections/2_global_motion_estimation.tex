@@ -53,34 +53,7 @@ There is a number of motion models that can be used to describe global motion, r
 
 All the motion models are defined as functions of some parameters; to get the camera motion in a certain sequence, we need to estimate the parameters of the motion model for that precise sequence. Taking as example the motion model we used in this project, the affine motion model, the shift in the position of a pixel can be described as in \cref{eq:affine-model-representation}.
 
-\begin{equation}
-    \label{eq:affine-model-representation}
-    p' = 
-    \begin{bmatrix}
-        X' \\ Y' \\ Z'
-    \end{bmatrix}
-    =
-    \begin{bmatrix}
-        r_1 & r_2 & r_3 \\
-        r_4 & r_5 & r_6 \\
-        r_7 & r_8 & r_9 
-    \end{bmatrix}
-    \begin{bmatrix}
-        X \\ Y \\ Z
-    \end{bmatrix}
-    +
-    \begin{bmatrix}
-        T_X \\ T_Y \\ T_Z
-    \end{bmatrix}
-    = Rp + T
-\end{equation}
-
-% \begin{figure}[h]
-%     \centering
-%     \includegraphics[width=.9\linewidth]{../assets/images/affine-model.jpg}
-%     \caption{\red{substitute with equation}}
-%     \label{fig:affine-model-representation}
-% \end{figure}
+\input{../assets/math/affine-model-representation.tex}
 
 Here $p'$ represents the position of the pixel after the camera motion. The matrix $R$ is used to describe rotation and the vector $T$ for the translation component.
 
@@ -90,13 +63,7 @@ The affine motion model can describe
 Usually the affine model is used under the assumptions that the rotation and translation are on the image plane, and that depth $Z$ is approximately constant \red{cite Wang}(as from \cite{WangBook}); these assumptions are reasonable as long as the motion occurring between the two frames we are analyzing is not too large.
 Under these assumptions, the affine model can be represented as \cref{eq:affine-model-direct-estimation}, where we need to estimate the 6 parameters $[a_1, a_2, a_3, b_1, b_2, b_3 ]$.
 
-\begin{equation}
-    \label{eq:affine-model-direct-estimation}
-    \begin{split}
-        \Delta x &= a_1 x_0 + a_2 y_0 + a_3 \\
-        \Delta y &= b_1 x_0 + b_2 y_0 + b_3
-    \end{split}
-\end{equation}
+\input{../assets/math/affine-model-direct-estimation.tex}
 
 \subsection{Parameter Estimation}
 There are two different approaches to estimate the parameters of a motion model,
@@ -124,10 +91,7 @@ The process is summarized in \cref{eq:indirect-estimation}, where
     \item $E$ is some error measure that accounts for the difference between the two motion vectors, usually a p-norm distance.
 \end{itemize}
 
-\begin{equation}
-    \label{eq:indirect-estimation}
-    a = \arg \min_a \sum_p E(gt(p) - MM(p, a))
-\end{equation}
+\input{../assets/math/indirect-estimation.tex}
 
 \subsection{Robust Estimation}
 Since motion in video sequences can be pretty fast and complex, it is often the case that some parts of the scene move in such a way that they insert noise in the motion estimation process.
