@@ -198,20 +198,20 @@
 
 \subsection{Motion estimation}
 \begin{frame}{Block-based motion estimation}
-	The affine model requires a dense motion field when computing the parameters, which we compute via a block-based approach
+	BBME algorithms perform motion estimation and return the motion field to use as ground truth for indirect parameter estimation
 
 	\bigskip	
-	We started with 3 well-established BBME algorithms:
+	We implemented 4 well-known BBME algorithms:
 	\begin{itemize}
 		\item exhaustive search
 		\item three-step search
 		\item 2D log search
+		\item diamond search
 	\end{itemize}
-    Then, we search for new algorithms in the literature and landed on \bold{diamond search}
 	\bigskip
-    \begin{block}{Displaced frame difference}
-        As DFD, we tried both 1-norm (MAE) and 2-norm (MSE)        
-    \end{block}
+    % \begin{block}{Displaced frame difference}
+    %     As DFD, we tried both 1-norm (MAE) and 2-norm (MSE)        
+    % \end{block}
     
 \end{frame}
 
@@ -280,19 +280,27 @@
 
 \subsubsection*{Diamond search BBME}
 \begin{frame}{Diamond search}
-	BBME algorithm presented in Zhu and Ma, 2000. Better performances thant classic algorithms (TSS) and comparable to latest ones (NTSS), yet more efficient in computation.
+	BBME algorithm presented in Zhu and Ma, 2000. 
     \bigskip
     
-    It uses two different search patterns, both of which are diamond-shaped:
-    \begin{itemize}
-        \item large diamond search pattern (LDSP)
-        \item small diamond search pattern (SDSP)
-    \end{itemize}
-    \begin{figure}
-        \centering
-        \includegraphics[keepaspectratio,width=.5\linewidth]{images/ds-search-patterns.png}
-        \caption{The shape of LDSP and SDSP}
-    \end{figure}
+    Better performances thant classic algorithms (TSS) and comparable to latest ones (NTSS), yet more efficient in computation.
+    \bigskip
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            It uses two different  diamond-shaped search patterns:
+            \begin{itemize}
+                \item large diamond search pattern (LDSP)
+                \item small diamond search pattern (SDSP)
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[keepaspectratio,width=\linewidth]{images/ds-search-patterns.png}
+                \caption{The shape of LDSP and SDSP}
+            \end{figure}
+        \end{column}
+    \end{columns}
 \end{frame}
 
 \begin{frame}{DS algorithm}
@@ -342,22 +350,33 @@
 \end{frame}
 
 \subsection{Global motion estimation}
-\begin{frame}{The affine model}
-    It features a six parameters vector \(a = [a_0, a_1, a_2, b_0, b_1, b_2]^T\)
-    \bigskip
-
-    The parameter matrix looks like this 
-    \begin{equation*}
-        [A(x)] = 
-        \begin{bmatrix}
-            1 & x & y & 0 & 0 & 0 \\
-            0 & 0 & 0 & 1 & x & y
-        \end{bmatrix}
-    \end{equation*}
+\begin{frame}{Affine model prediction error}
+    The affine model computes the displacement of a given pixel wrt parameters \(a\) as
+    \input{../assets/math/displacement-matrix-formulation.tex}
+    where \(A(x)\) is an intermediate matrix
+    \input{../assets/math/affine-model-parameter-matrix.tex}
+    \begin{block}{Fitting error}
+        The fitting error computation gets rewritten as
+        \input{../assets/math/pnorm-error.tex}
+    \end{block}
 \end{frame}
 
-\begin{frame}{Robust}
-    
+\begin{frame}{Affine model parameter estimation}
+    We are interested in the parameters that minimize the fitting error \(\to \nabla_a E = 0\)
+    \begin{block}{Parameter update}
+        Assuming \(p = 2\), we get
+        \input{../assets/math/optimal-parameter-affine.tex}
+    \end{block}
+    \begin{exampleblock}{Refinement}
+        \begin{itemize}
+            \item each point \(p\) can be weighted
+            \item parameter vector \(a\) can be split: \(a_x = [a_1,a_2,a_3]\) and \(a_y = b_1,b_2,b_3\)
+            \begin{itemize}
+                \item reduce the overall complexity
+            \end{itemize}
+        \end{itemize}
+        \input{../assets/math/optimal-parameter-affine-weighted-halved.tex}
+    \end{exampleblock}
 \end{frame}
 
 
