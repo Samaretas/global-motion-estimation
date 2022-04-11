@@ -169,8 +169,8 @@ def some_data(psnr_path: str) -> None:
 if __name__ == "__main__":
     # create_video_from_frames("./results/mat_inv_nastro3/bbme/", 75, "pan_nastro_3_bbme.avi", 5)
     # create_video_from_frames("./results/mike_ball/gme/", 80, "mike_bounce.avi", 20)
-    create_video_from_frames("./results/pan240/diff_curr_comp/", 205, "pan240_compensated_gme.avi", 30)
-    create_video_from_frames("./results/pan240/diff_curr_prev/", 205, "pan240_not_compensated.avi", 30)
+    # create_video_from_frames("./results/pan240/diff_curr_comp/", 205, "pan240_compensated_gme.avi", 30)
+    # create_video_from_frames("./results/pan240/diff_curr_prev/", 205, "pan240_not_compensated.avi", 30)
     # matrix = np.arange(25)
     # matrix = matrix.reshape((5,5))
     # print(matrix)
@@ -178,3 +178,4 @@ if __name__ == "__main__":
     # print(matrix)
     # histogram = np.histogram(matrix, np.array([i for i in range(10)]))
     # print(histogram)
+    some_data('venv/psnr_records.json')

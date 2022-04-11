@@ -338,8 +338,49 @@
 \section{Results}
 \subsection{Qualitative: motion compensation}
 \begin{frame}{Compensation}
-
+    \begin{figure}[htbp]
+        \begin{subfigure}[b]{0.3\textwidth}
+            \centering
+            \includegraphics[width=.9\textwidth]{../assets/images/04-prev-frame.png}
+            \caption{Previous frame}
+            \label{fig:prev-frame}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=.9\textwidth]{../assets/images/04-curr-frame.png}
+            \caption{Previous frame}
+            \label{fig:curr-frame}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=.9\textwidth]{../assets/images/04-compensated.png}
+            \caption{Compensated frame}
+            \label{fig:compensated}
+        \end{subfigure}
+        
+        \begin{subfigure}[b]{0.3\textwidth}
+            \centering
+            \includegraphics[width=.9\textwidth]{../assets/images/04-diff-curr-prev-1.png}
+            \caption{Absolute difference between current and previous frame}
+            \label{fig:diff-curr-prev}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=.9\textwidth]{../assets//images/04-camera-motion-1.png}
+            \caption{Global motion field estimated by our procedure}
+            \label{fig:est-mf}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=.9\textwidth]{../assets/images/04-diff-curr-comp.png}
+            \caption{Absolute difference between current and compensated frame}
+            \label{fig:diff-curr-comp}
+        \end{subfigure}
+    
+        \caption{Estimated trajectories.}
+    \end{figure}
 \end{frame}
+
 \subsection{Quantitative: PSNR}
 \begin{frame}{Frame Title}
     \begin{table}
