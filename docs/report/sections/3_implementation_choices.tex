@@ -99,6 +99,20 @@ where $A_x(p) = [1,x,y]$.
 The form of the solution that we used in the implementation is the one reported in \cref{eq:optimal-parameter-affine-weighted-halved}.
 
 \subsection{Hierarchical Robust Estimation}
-There is still one last strategy employed in the project, which is used to provide a robust estimation of the parameters for the affine motion model.
 
-The strategy employed here takes inspiration from \cite{Dufeaux2000}, where the computation of the motion field takes place at different levels of resolution. The idea is to exploit the computation at a coarser resolution to extract information useful for regularizing the estimation at finer resolutions.
+The last part of the project is a strategy used to provide a robust estimation of the parameters for the affine motion model.
+The proposed implementation is inspired by \cite{Dufeaux2000}, where the computation of the motion field takes place at different levels of resolution subsequently.
+
+The main idea is to compute the parameter vector $a$ at a coarser resolution, and then use this coarser estimation to extract information useful for regularizing the estimation at finer resolutions. 
+In practice, this translates in our code being structured as shown in \cref{fig:implementation-flow}: the two frames we use as previous and next frame are, first of all, transformed in multi-resolution pyramids, and then used iteratively for the process of parameter estimation.
+
+Here we report a summary of the procedure used to implement the hierarchical robust etimation:
+\begin{enumerate}
+    \item for each iteration we get as input the frames at the corresponding level $l$ of the pyramid (at a finer resolution w.r.t the previous iteration at level $l-1$) and the parameter vector $a_{l-1}$ computed in the previous iteration;
+    \item we use the (scaled) parameters $a_{l-1}$ to compute the error for each position $p$ in the frames at level $l$; error is computed as difference between the ground truth motion vector in $p$ and the motion vector obtained with the motion model in $p$ with parameters $a_{l-1}$;
+    \item to detect the outliers we order all positions $p$ by the magnitude of the error, we set a fixed percentage \texttt{outlier\_percentage} and all the positions that fall in that percentage of higer-error-positions are marked as outliers;
+    \item once we have marked all the outliers, we can proceed and compute the new estimate of the parameter vector $a_{l}$ ignoring the outliers;
+    \item the new estimate will be returned to the next level $l+1$ of the hierarchical procedure, or simply returned to the caller of the function when we reach the last level.
+\end{enumerate}
+
+\red{Pseudocode here? May be redundant. Would be clearer. Would buy space. Would steal space. This makes me doubt.}
