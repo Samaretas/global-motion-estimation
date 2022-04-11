@@ -18,7 +18,47 @@ To show the results obtained we reported in image \red{qualitative-result-image}
     \item second row position 2, the absolute difference between the next frame and the compensated one.
 \end{itemize}
 
-\red{image here}
+% \begin{figure*}[htbp]
+%     \begin{subfigure}[b]{0.3\textwidth}
+%         \centering
+%         \includegraphics[width=1\textwidth]{./imgs/posenet_map.png}
+%         \caption{Predicted trajectory with PoseNet (ResNet-152).}
+%         \label{fig:1}
+%     \end{subfigure}
+%     \hfill
+%     \begin{subfigure}[b]{0.3\textwidth}
+%         \includegraphics[width=1\textwidth]{./imgs/mapnet_map.png}
+%         \caption{Predicted trajectory MapNet (ResNet-34).}
+%         \label{fig:b}
+%     \end{subfigure}
+%     \hfill
+%     \begin{subfigure}[b]{0.3\textwidth}
+%         \includegraphics[width=1\textwidth]{./imgs/mapnet_map.png}
+%         \caption{Predicted trajectory MapNet (ResNet-34).}
+%         \label{fig:c}
+%     \end{subfigure}
+
+%     \begin{subfigure}[b]{0.3\textwidth}
+%         \centering
+%         \includegraphics[width=1\textwidth]{./imgs/posenet_map.png}
+%         \caption{Predicted trajectory with PoseNet (ResNet-152).}
+%         \label{fig:s}
+%     \end{subfigure}
+%     \hfill
+%     \begin{subfigure}[b]{0.3\textwidth}
+%         \includegraphics[width=1\textwidth]{./imgs/mapnet_map.png}
+%         \caption{Predicted trajectory MapNet (ResNet-34).}
+%         \label{fig:7}
+%     \end{subfigure}
+%     \hfill
+%     \begin{subfigure}[b]{0.3\textwidth}
+%         \includegraphics[width=1\textwidth]{./imgs/mapnet_map.png}
+%         \caption{Predicted trajectory MapNet (ResNet-34).}
+%         \label{fig:cg
+%     \end{subfigure}
+
+%     \caption{Estimated trajectories.}
+% \end{figure*}
 
 \paragraph{How to interpret the results shown in \red{qualitative-result-image}} We should be able to notice in the results that the motion that we can register between the two frames is pretty large. In fact, we can see that a big part of the visual field seems to be moving in \red{ref second-row-position-1}.
 
@@ -34,4 +74,8 @@ To perform a numeric quantitative analysis of the results produced by the algori
 
 Therefore, in \red{insert table}, we present some PSNR values for different video sequences. We annotated the table with some considerations about the videos, since PSNR value is influenced also about properties of the video like the strength of motion or the presence/absence of real motion.
 
-\red{table here}
+\begin{table}
+    \label{tab:psnr}
+    \input{../assets/tables/psnr.tex}
+    \caption{PSNR result on a vunch of samples}
+\end{table}    
