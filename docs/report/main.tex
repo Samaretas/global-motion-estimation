@@ -3,7 +3,7 @@
 % The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
-\usepackage{algorithmic}
+\usepackage[ruled, vlined] {algorithm2e}
 \usepackage[hidelinks]{hyperref}
 \usepackage[noabbrev,capitalize]{cleveref}
 \usepackage{array, booktabs, makecell}
@@ -17,6 +17,10 @@
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \newcommand{\red}[1]{\textcolor{red}{#1}}
 \newcommand{\blue}[1]{\textcolor{blue}{#1}}
+\makeatletter
+\newcommand{\removelatexerror}{\let\@latex@error\@gobble}
+\makeatother
+
 
 \hypersetup{
     colorlinks=true,
