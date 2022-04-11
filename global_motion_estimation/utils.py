@@ -2,6 +2,7 @@ from cmath import log10, sqrt
 from tkinter import image_names
 import cv2
 import time
+import json
 import numpy as np
 
 
@@ -133,6 +134,36 @@ def create_video_from_frames(frame_path, num_frames, video_name, fps=30):
 
     cv2.destroyAllWindows()
     video.release()
+
+def some_data(psnr_path: str) -> None:
+    psnrs = {}
+    with open(psnr_path, 'r') as f:
+        psnrs = json.load(f)
+
+    psnrs_np = np.zeros(shape=[len(psnrs),1])
+    count = 0
+    for frames in psnrs:
+        cut = psnrs[frames].index('+')
+        num = psnrs[frames][1:cut]
+        psnrs_np[count] = num
+        count += 1
+
+    avg = psnrs_np.sum() / len(psnrs)
+    diff = np.zeros(shape=[len(psnrs),1])
+
+    for value in psnrs_np:
+        idx = psnrs_np.tolist().index(value) 
+        diff[idx] = (value - avg) ** 2
+
+    var = (diff.sum()/len(psnrs))
+
+    print("Average: {:.3f}".format(avg))
+    print("Variance: {:.3f}".format(var))
+    print("Standard deviation: {:.3f}".format(var**(1/2)))
+    print("Highest: {:.3f}".format(psnrs_np.max()))
+    print("Lowest: {:.3f}".format(psnrs_np.min()))
+
+
 
 
 if __name__ == "__main__":
