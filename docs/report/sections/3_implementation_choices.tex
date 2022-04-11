@@ -1,6 +1,5 @@
 \section{Implementation choices}
 \label{sec:03-implementation}
-\red{Insert pseudocode of the implementation.}
 
 As stated in \cref{sec:motion-models}, we decided to use an indirect method with affine model for motion estimation as in Bergen et al.\cite{Bergen92}; also, we decided to obtain a robust estimation by using a strategy similar to Dufaux and Konrad\cite{Dufeaux2000}, where they adopt a hierarchical approach to obtain a robust estimation using coarse resolution to guide the search for the best parameters at a finer resolution.
 
@@ -115,4 +114,4 @@ Here we report a summary of the procedure used to implement the hierarchical rob
     \item the new estimate will be returned to the next level $l+1$ of the hierarchical procedure, or simply returned to the caller of the function when we reach the last level.
 \end{enumerate}
 
-\red{Pseudocode here? May be redundant. Would be clearer. Would buy space. Would steal space. This makes me doubt.}
+\input{../assets/code/algorithm.tex}
