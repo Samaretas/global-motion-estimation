@@ -1,22 +1,53 @@
-\begin{figure}[htb]
-    \removelatexerror
-    \begin{algorithm}[H]
-        \label{alg:gme}
+\begin{algorithm}[H]
+    \label{alg:gme}
+    \DontPrintSemicolon
 
-        \DontPrintSemicolon
+    \SetKwData{params}{\(a\)}
+    \SetKwData{out}{outliers}
+    \SetKwData{prevp}{prev\_pyrs}
+    \SetKwData{curp}{cur\_pyrs}
+    \SetKwData{prevf}{prev\_frame}
+    \SetKwData{curf}{cur\_frame}
+    \SetKwData{gt}{ground\_truth\_mfield}
+    \SetKwData{est}{estimated\_mfield}
 
-        \ForEach{level \(l\) in the pyramid}{
-            get \(current_l\), \(previous_l\)\;
-            get \(a_{l-1}\)\;
-            \ForEach{\(px\) in frame \(current_l\)}{
-                \(E_{px} = |d(px, a_{l-1}) - d(px)|^p\)\;
-                \If{\(E_{px} > T\)}{
-                    mark \(px\) as outlier\;
-                }
-            }
-            update \(a\) ignoring outliers\;
-        }
+    \SetKwFunction{Pyr}{get\_pyr}
+    \SetKwFunction{FirstEst}{first\_estimation}
+    \SetKwFunction{Next}{next}
+    \SetKwFunction{BM}{BBME}
+    \SetKwFunction{Aff}{affine}
+    \SetKwFunction{DetOut}{detect\_outliers}
+    \SetKwFunction{Min}{minimize\_error}
 
-        \caption{Global motion estimation}
-    \end{algorithm}
-\end{figure}
+    \KwIn{\prevf, \curf}
+    \KwOut{\params \quad \texttt{//\(\;\)parameter vector}}
+    \;        
+    \prevp = \Pyr{previous\_frame}\;
+    \curp = \Pyr{current\_frame}\;
+    \params = \FirstEst{\prevp.\Next{}, \curp.\Next{}}\;
+    \ForEach{\(l\) in levels}{
+        \prevf = \prevp.\Next{}\;
+        \curf = \curp.\Next{}\;
+        \gt = \BM{\prevf, \curf}\;
+        \est = \Aff{\params}\;
+        \out = \DetOut{\gt, \est}\;
+        \params = \Min{\prevf, \curf, \out}\;
+    }
+
+    \Return \params\;
+
+    \caption{Procedure overview}
+\end{algorithm}
+
+
+% prev_pyr = get_pyr(previous_frame)
+% curr_pyr = get_pyr(current_frame)
+% a = first_estimation(prev_pyr.pop(), curr_pyr.pop())
+% for level in ([1,2]):
+% 	curr = curr_pyr.pop()
+% 	prev = prev_pyr.pop()
+% 	ground_truth_mfield = BMME_motion_estimation(prev, curr)
+% 	estimated_mfield = affine(a)
+% 	outliers = detect_outliers(ground_truth_mfield, estimated_mfield)
+% 	a = minimize_error(prev, curr, outliers)# update parameters
+% return a

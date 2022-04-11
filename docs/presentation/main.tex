@@ -7,26 +7,26 @@
 \usepackage{subcaption}
 \usepackage{hyperref}
 
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{array, booktabs, makecell}
+\usepackage{tabularx}
+
+\usepackage{textcomp}
 \usepackage[ruled]{algorithm2e}
+\makeatletter
+\newcommand{\removelatexerror}{\let\@latex@error\@gobble}
+\makeatother
 
 % Graphics and video
 \usepackage{graphicx,float,wrapfig}
 \usepackage{animate}
-% \usepackage{media9}
-% \usepackage{multimedia}
 \graphicspath{
   {../assets/}%
 }
-% \addmediapath{
-%     ../assets/
-% }
-
 
 % args: big, bigg, Big, Bigg
 \newcommand{\parenth}[2][]{#1(#2#1)}
 \renewcommand{\bold}[1]{\textbf{\structure{#1}}}
-
-
   
 \author[Conti \and Daniotti]{Samuele Conti \and Filippo Daniotti}
 \title[Global Motion Estimation]{\textsc{Global Motion Estimation}}
@@ -153,7 +153,7 @@
     \end{columns}
 \end{frame}
 
-\subsection{Motion estimation}
+\subsection{Block-based motion estimation}
 \begin{frame}{Block-based motion estimation}
 	BBME algorithms perform motion estimation and return the motion field to use as ground truth for indirect parameter estimation
 
@@ -305,7 +305,7 @@
 \begin{frame}{Affine model prediction error}
     The affine model computes the displacement of a given pixel wrt parameters \(a\) as
     \input{../assets/math/displacement-matrix-formulation.tex}
-    where \(A(x)\) is an intermediate matrix
+    where \(A[p]\) is an intermediate matrix
     \input{../assets/math/affine-model-parameter-matrix.tex}
     \begin{block}{Fitting error}
         The fitting error computation gets rewritten as
@@ -331,19 +331,26 @@
     \end{exampleblock}
 \end{frame}
 
-\begin{frame}{Recap}
+\begin{frame}{Pseudocode}
     \input{../assets/code/algorithm.tex} 
 \end{frame}
 
-\section{Evaluation}
+\section{Results}
 \subsection{Qualitative: motion compensation}
 \begin{frame}{Compensation}
 
 \end{frame}
 \subsection{Quantitative: PSNR}
+\begin{frame}{Frame Title}
+    % \begin{table}
+    %     \label{tab:posenet-losses}
+    %     \input{../assets/tables/psnr.tex}
+    %     \caption{a}
+    % \end{table}    
+\end{frame}
+
 
 \section{Conclusions}
-
 \begin{frame}
     \begin{center}
         {\Huge\calligra Thanks!}

@@ -105,6 +105,11 @@ The proposed implementation is inspired by \cite{Dufeaux2000}, where the computa
 The main idea is to compute the parameter vector $a$ at a coarser resolution, and then use this coarser estimation to extract information useful for regularizing the estimation at finer resolutions. 
 In practice, this translates in our code being structured as shown in \cref{fig:implementation-flow}: the two frames we use as previous and next frame are, first of all, transformed in multi-resolution pyramids, and then used iteratively for the process of parameter estimation.
 
+\begin{figure*}[!h]
+    \removelatexerror
+    \input{../assets/code/algorithm.tex}
+\end{figure*}
+
 Here we report a summary of the procedure used to implement the hierarchical robust etimation:
 \begin{enumerate}
     \item for each iteration we get as input the frames at the corresponding level $l$ of the pyramid (at a finer resolution w.r.t the previous iteration at level $l-1$) and the parameter vector $a_{l-1}$ computed in the previous iteration;
@@ -113,5 +118,3 @@ Here we report a summary of the procedure used to implement the hierarchical rob
     \item once we have marked all the outliers, we can proceed and compute the new estimate of the parameter vector $a_{l}$ ignoring the outliers;
     \item the new estimate will be returned to the next level $l+1$ of the hierarchical procedure, or simply returned to the caller of the function when we reach the last level.
 \end{enumerate}
-
-\input{../assets/code/algorithm.tex}
