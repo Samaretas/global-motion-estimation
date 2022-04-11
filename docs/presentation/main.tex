@@ -7,6 +7,8 @@
 \usepackage{subcaption}
 \usepackage{hyperref}
 
+\usepackage[ruled]{algorithm2e}
+
 % Graphics and video
 \usepackage{graphicx,float,wrapfig}
 \usepackage{animate}
@@ -114,23 +116,6 @@
     \end{columns}
 \end{frame}
 
-% \section{Theory}
-% \begin{frame}{Dealing with GME}
-%     Most of the existing algorithms that deal with global motion estimation assume that camera motion can be described as a  \bold{parameterized motion model}.
-%     \begin{block}{Parameterized motion model}
-%         An equation that describes the expected shape of the motion vector for each still pixel, given a certain movement of the camera
-%     \end{block}
-%     \bigskip
-%     Different global motion patterns (translation, rotation, panning, et cetera) are described by different models
-%     \begin{exampleblock}{Some well-known global motion models}
-%         \begin{itemize}
-%             \item translation model
-%             \item affine model
-%             \item projective model
-%         \end{itemize}
-%     \end{exampleblock}
-% \end{frame}
-
 \begin{frame}{Estimating parameters}
     There are two main approaches, both of which aim to minimize a prediction error
     \bigskip
@@ -145,34 +130,6 @@
         \input{../assets/math/indirect-estimation.tex}
     \end{block}
 \end{frame}
-
-% \begin{frame}{Indirect parameter estimation}
-    % \begin{block}{Fitting error}
-    %     Compare ground truth \(d(x)\) to the estimate with current params \(d(x;a)\)
-    %     % Given a motion field \(d(x)\) computed at a set of sufficiently dense points \(x \in \Lambda ' \subset \Lambda \) and the motion field \(d(x;a)\) given by the model w/ current parameters \(a\), we compute the fitting error as
-    %     \begin{equation}
-    %         \label{eq:fitting-error}
-    %         E = \sum_{x \in \Lambda '} | d(x;a) - d(x) |^p
-    %     \end{equation}
-
-    % \end{block}
-
-    % Global motion can be approximed as a polynomial function, so \(d(x;a)\) is a linear function of \(a\) \(\to\) \(d(x;a) = [A(x)]a\)
-    % % \bigskip
-    
-    % \begin{block}{Minimizing the error}
-    %     Assuming \(p = 2\) we can recompute \(a\) minimizing \(E\) as follows
-    
-    %     \begin{equation}
-    %         \label{eq:min-fit-err}
-    %         \frac{\partial E}{\partial a} = 0 
-    %         \quad
-    %         \Rightarrow 
-    %         \quad
-    %         a = \parenth[\Bigg]{\sum_{x \in \Lambda '} [A(x)]^T[A(x)]}^{-1}\parenth[\Bigg]{\sum_{x \in \Lambda '} [A(x)]d(x)}
-    %     \end{equation}    
-    % \end{block}
-% \end{frame}
 
 \section{Implementation}
 \begin{frame}{Overview}
@@ -207,12 +164,7 @@
 		\item three-step search
 		\item 2D log search
 		\item diamond search
-	\end{itemize}
-	\bigskip
-    % \begin{block}{Displaced frame difference}
-    %     As DFD, we tried both 1-norm (MAE) and 2-norm (MSE)        
-    % \end{block}
-    
+	\end{itemize}    
 \end{frame}
 
 \begin{frame}{Exhaustive search}
@@ -379,6 +331,9 @@
     \end{exampleblock}
 \end{frame}
 
+\begin{frame}{Recap}
+    \input{../assets/code/algorithm.tex} 
+\end{frame}
 
 \section{Evaluation}
 \subsection{Qualitative: motion compensation}

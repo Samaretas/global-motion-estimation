@@ -1,0 +1,19 @@
+\begin{algorithm}[H]
+    \label{alg:gme}
+
+    \DontPrintSemicolon
+
+    \ForEach{level \(l\) in the pyramid}{
+        get \(current_l\), \(previous_l\)\;
+        get \(a_{l-1}\)\;
+        \ForEach{\(px\) in frame \(current_l\)}{
+            \(E_{px} = |d(px, a_{l-1}) - d(px)|^p\)\;
+            \If{\(E_{px} > T\)}{
+                mark \(px\) as outlier\;
+            }
+        }
+        update \(a\) ignoring outliers\;
+    }
+
+    \caption{Global motion estimation}
+\end{algorithm}
