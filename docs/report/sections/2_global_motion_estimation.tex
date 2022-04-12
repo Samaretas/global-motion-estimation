@@ -1,8 +1,6 @@
 \section{Global Motion Estimation}
 \label{sec:02-gme}
-Videos are, at their core, sequences of images called frames; we can spot the movement between a given pair of frames by detecting ehich pixels that changed position with respect to that pair of frames.
-
-% When we look at a video, which corresponds to a sequence of images, called frames, we can spot the movement between one frame and the other by detecting the pixels that changed position with respect to the pair of frames.
+Videos are, at their core, sequences of images called frames; we can spot the motion happening between a given pair of frames by detecting which pixels changed position with respect to that pair of frames.
 
 This information can be encoded in a human-understandable format by presenting the \textit{needle diagram} of the two frames; this kind of representation is shown in \cref{fig:needle-diagram}.
 
@@ -15,14 +13,14 @@ This information can be encoded in a human-understandable format by presenting t
 
 It is pretty clear what information this figure is conveying: for each couple of frames we mark with an arrow the shift that the pixel has made. This gives us an indication of the actual movement of the recorded objects.
 
-But the movement that we are able to extract from the two frames is what is usually called "apparent motion", which is a combination of two different factors:
+However, the motion that we are able to extract from the two frames is what is usually called "apparent motion", which is a combination of two different factors:
 \begin{itemize}
-    \item the global motion, which corresponds with the motion of the camera;
+    \item the global motion, which corresponds to the motion of the camera;
     \item the effective motion of the objects recorded.
 \end{itemize}
 
 An important task in computer vision is the global motion estimation, which aims to distinguish these two different types of motion.
-In particular, this information is highly important for a number of applications, among which we find video coding, motion compensation, object segmentation and egomotion estimation.
+In particular, this information is highly important for a number of applications, amongst which we find video coding, motion compensation, object segmentation and egomotion estimation.
 
 The task of distinguishing which movement is to be classified as global motion and which one is to be classified as object motion instead is not so easy. In fact, there is no clear feature that distinguishes the moving objects from the static background, and this leads to the need for complex tools to differentiate the two types of motion.
 
@@ -34,9 +32,9 @@ The task of distinguishing which movement is to be classified as global motion a
 The main approach to global motion estimation consists in using a motion model to describe the motion of the camera.
 
 % What is a motion model?
-Motion models describe the motion of the entire visual field through an equation. Basically, the underpinning idea is to write an equation which, given a pixel in a certain position $\{x,y\}$, returns the position that the same pixel will have in the next frame, if its motion is due only to camera motion.
+Motion models describe the motion of the entire visual field through an equation. Basically, the underpinning idea is to write an equation which, given a pixel in a certain position $(x,y)$, returns the position that the same pixel will have in the next frame, if its motion is due only to camera motion.
 
-There is a number of motion models that can be used to describe global motion, ranging from very simple translational models, that can describe only translation motion, to more complex models allowing to describe pan, tilt, zoom and roll motion patterns. The reader can use as reference \cref{fig:camera-motion} as an illustration of these types of motion.
+There is a number of motion models that can be used to describe global motion, ranging from very simple translational models - that can describe only translation motion - to more complex models, allowing to describe pan, tilt, zoom and roll motion patterns. The reader can use as reference \cref{fig:camera-motion} as an illustration of these types of motion.
 
 \begin{figure}
     \centering
@@ -45,7 +43,7 @@ There is a number of motion models that can be used to describe global motion, r
     \label{fig:camera-motion}
 \end{figure}
 
-All the motion models are defined as functions of some parameters; to get the camera motion in a certain sequence, we need to estimate the parameters of the motion model for that precise sequence. Taking as example the motion model we used in this project, the affine motion model, the shift in the position of a pixel can be described as in \cref{eq:affine-model-representation}.
+All the motion models are defined as functions of some parameters; to get the camera motion in a certain sequence we need to estimate the parameters of the motion model for that precise sequence. Taking as example the motion model we used in this project - the affine motion model - the shift in the position of a pixel can be described as in \cref{eq:affine-model-representation}.
 
 \input{../assets/math/affine-model-representation.tex}
 
@@ -55,23 +53,23 @@ The affine motion model can describe
 \red{check precisely in the book}
 
 Usually the affine model is used under the assumptions that the rotation and translation are on the image plane, and that depth $Z$ is approximately constant (as from \cite{WangBook}); these assumptions are reasonable as long as the motion occurring between the two frames we are analyzing is not too large.
-Under these assumptions, the affine model can be represented as \cref{eq:affine-model-direct-estimation}, where we need to estimate the 6 parameters $[a_1, a_2, a_3, b_1, b_2, b_3 ]$.
+Under these assumptions, the affine model can be represented as \cref{eq:affine-model-direct-estimation}, where we need to estimate the 6 parameters $a =[a_1, a_2, a_3, b_1, b_2, b_3 ]$.
 
 \input{../assets/math/affine-model-direct-estimation.tex}
 
 \subsection{Parameter Estimation}
-There are two different approaches to estimate the parameters of a motion model,
+There are two different approaches to estimate the parameters of a motion model:
 \begin{itemize}
-    \item a direct way, which computes the best parameters by optimizing an overdetermined system in the pixel domain;
-    \item an indirect way, which minimizes the approximation error between the motion field obtained with an estimation and the motion field obtained by the motion model.
+    \item a direct approach, which computes the best parameters by optimizing an overdetermined system in the pixel domain;
+    \item an indirect approach, which minimizes the approximation error between the motion field obtained with an estimation and the motion field obtained by the motion model.
 \end{itemize}
 
-The first approach derives from the equation of the optical flow, and, in the case of the affine model, describes the motion of each pixel as in \cref{eq:affine-model-direct-estimation}.
-The aforementioned equation can be applied to any subset of pixels of the frames, therefore the system turns out to be overdetermined and we can solve it using some optimization method like gradient descent.
+The first approach derives from the equation of the optical flow; in the case of the affine model, it describes the motion of each pixel as in \cref{eq:affine-model-direct-estimation}.
+This equation can be applied to any subset of pixels of the frames, therefore the system turns out to be overdetermined and we can solve it using some optimization method, for instance gradient descent.
 
-The second approach, indirect estimation, aims at minimizing some error measure between the ground truth motion field and the motion field returned by the motion model.
+The second approach - indirect estimation - aims to minimize some error measure between the ground truth motion field and the motion field returned by the motion model.
 
-Therefore, indirect estimation needs, as a preprocessing step, to get the motion field from a motion estimation method (e.g. block-based motion estimation). This motion field is then used as \textit{ground truth} to find the parameters of the motion model that minimize some error measure between this motion field and the one returned by the motion model.
+Therefore, indirect estimation needs, as a preprocessing step, to get the motion field from a motion estimation method - e.g. block-based motion estimation. This motion field is then used as \textit{ground truth} to find the parameters of the motion model that minimize some error measure between this motion field and the one returned by the motion model.
 
 An aspect of this procedure worth highlighting is that it works on the motion field rather than directly on the pixel domain. Hence, it can compute motion of blocks instead of single pixels, reducing the overall complexity of the procedure.
 
@@ -81,15 +79,15 @@ The process is summarized in \cref{eq:indirect-estimation}, where
     \item $p$ is the single pixel (or block);
     \item $gt(p)$ is the ground truth motion vector for $p$;
     \item $MM(p,a)$ is the motion vector that the motion model would predict for $p$ with parameters $a$;
-    \item $E$ is some error measure that accounts for the difference between the two motion vectors, usually a p-norm distance.
+    \item $E$ is some error measure that accounts for the difference between the two motion vectors, usually a \(p\)-norm distance.
 \end{itemize}
 
 \input{../assets/math/indirect-estimation.tex}
 
-Once we minimize \cref{eq:indirect-estimation}, we obtain the values of the parameter vector $a$ that encode the camera motion in the video sequence we are analyzing.
+Once we minimize \cref{eq:indirect-estimation}, we obtain the values of the parameter vector $a$ that encode the camera motion of the video sequence we are analyzing.
 
 \subsection{Robust Estimation}
 Since motion in video sequences can be pretty fast and complex, it is often the case that some parts of the scene move in such a way that they insert noise in the motion estimation process.
-In particular, if there are fast moving objects (outliers) - namely objects manifesting some kind of intrinsic motion which is not caused by camera motion -, their movement will pollute the estimation of the parameters of the motion model.
+In particular, it is quite expected to find fast moving objects which we refer to as \emph{outliers}: they are objects manifesting some kind of intrinsic motion - not caused by camera motion - which pollutes the estimation of the parameters of the motion model.
 
 In order to solve this problem, a common approach is to introduce some strategy to remove the outliers from the motion estimation process and, consequently, obtain a robust estimation of the motion field.

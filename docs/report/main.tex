@@ -2,7 +2,7 @@
 \IEEEoverridecommandlockouts
 % The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
 \usepackage{cite}
-\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsmath,amssymb,amsfonts,bm}
 \usepackage[ruled]{algorithm2e}
 \usepackage[hidelinks]{hyperref}
 \usepackage[noabbrev,capitalize]{cleveref}
@@ -12,7 +12,6 @@
 \usepackage{xcolor}
 \usepackage{caption}
 \usepackage{subcaption}
-% \usepackage{subfigure}
 \newcommand\norm[1]{\left\lVert#1\right\rVert}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -23,6 +22,8 @@
 \makeatother
 
 
+\usepackage[a-1b]{pdfx}
+\usepackage{hyperref}
 \hypersetup{
     colorlinks=true,
     linkcolor=black,
@@ -56,7 +57,7 @@ samuele.conti@studenti.unitn.it\\
 \pagestyle{plain}
 
 \begin{abstract}
-The problem of global motion estimation (GME) deals with the separation, in a video sequence, of two different types of motion: the \emph{egomotion} of the camera recording the video, and the actual motion of the objects recorded. The literature presents a number of possible approaches to the GME problem; here, we aim to combine some of the most effective strategies to compute the motion of the camera. We adopt an indirect approach based on the affine motion model. Following a multi-resolution approach, at each level we compute the parameters of the motion model that minimize the error of the motion field. Then, we use those parameters to spot the outliers of the motion field in the next level; when computing the optimal parameters in the next level, we remove the detected outliers, so to obtain a robust estimation.
+The problem of global motion estimation (GME) deals with the separation, in a video sequence, of two different types of motion: the \emph{egomotion} of the camera recording the video, and the actual motion of the objects recorded. The literature presents a number of possible approaches to the GME problem; here, we aim to combine some of the most effective strategies to compute the motion of the camera. We adopt an indirect approach based on the affine motion model. Following a multi-resolution approach, at each level we compute the parameters of the motion model that minimize the error of the motion field. Then, we use those parameters to spot the outliers of the motion field in the next level; when computing the optimal parameters in the next level, we remove the detected outliers, in order to obtain a robust estimation.
 Results are reported both in a qualitative and quantitative way.  
 \end{abstract}
 

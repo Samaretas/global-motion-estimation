@@ -3,7 +3,7 @@
 
 As stated in \cref{sec:motion-models}, we decided to use an indirect method with affine model for motion estimation as in Bergen et al.\cite{Bergen92}; also, we decided to obtain a robust estimation by using a strategy similar to Dufaux and Konrad\cite{Dufeaux2000}, where they adopt a hierarchical approach to obtain a robust estimation using coarse resolution to guide the search for the best parameters at a finer resolution.
 
-In the following sections, we will provide an in-depth explaination of our solution and present the pseudocode of the algorithm. A schematic representation of the procedure is presented in \cref{fig:implementation-flow}.
+In the following sections, we will provide an in-depth explaination of our solution and present the pseudocode of the algorithm (see \cref{alg:gme}). A schematic representation of the procedure is presented in \cref{fig:implementation-flow}.
 
 \begin{figure}
     \centering
@@ -15,11 +15,11 @@ In the following sections, we will provide an in-depth explaination of our solut
 \subsection{Block-Based Motion Estimation}
 \label{sec:BBME}
 The first piece of the architecture is the algorithm to compute the motion field to be used as ground truth.
-In our case, we decided to implement a block matching motion estimation (BBME), as computing the motion field on blocks, rather than single pixels, can be much less computationally expensive.
+In our case, we decided to implement a block-based motion estimation (BBME) pipeline, since computing the motion field on blocks rather than single pixels is much less computationally expensive.
 
-The main idea of BBME is to divide the frame in blocks, and search for each block in the previous frame the corresponding block in the next frame.
-This gives us the displacement of the block between the two frames, which is accounted as motion vector of the block.
-This is the basic principle of BBME, from which derived a number of implementations that present differences mainly in two aspects:
+The main idea of BBME is to divide the frame in blocks and search for each block in the previous frame the corresponding block in the next frame.
+This gives us the displacement of the block between the two frames, which is accounted as \emph{motion vector} of the block.
+From this fundational principle a number of implementations have been proposed, differing mainly in two aspects:
 \begin{enumerate}
     \item the size and shape of the block;
     \item the path that the searching procedure follows.
@@ -46,7 +46,7 @@ The DS algorithm uses a peculiar diamond-shaped search pattern, which defines wh
 \begin{figure}
     \centering
     \includegraphics[width=.95\linewidth]{../assets/images/ds-search-patterns.png}
-    \caption{Representation of the two DS algorithm search patterns}
+    \caption{Representation of the two DS algorithm search patterns.}
     \label{fig:ds-search-patterns}
 \end{figure}
 
@@ -64,18 +64,18 @@ The procedure is the following:
 \end{figure}
 
 In \cref{fig:diamond-search-example} we can see an example of run. We can spot the three large-shape diamonds (the contour position are marked with circles) and the small shaped diamond (contour positions marked with triangles).
-In this example the block matching algorithm started from $\{0,0\}$, then moved with the large diamond to $\{-2,0\}$, because this was the position that minimized the error between the block in the previous and the next frame. Then again with the large diamond the algorithm reached $\{-3,-1\}$ first, and $\{-4,-2\}$ after. Here the best matching position for the large diamond shape was $\{-4,-2\}$, therefore the algorithm stopped using the large diamond and started with the small diamond. Finally, the small diamond returned once again as best match position $\{-4,-2\}$, which was then returned as final matching position for the block in the previous frame.
+In this example the block matching algorithm started from $(0,0)$ then moved with the large diamond to $(-2,0)$, because this was the position that minimized the error between the block in the previous and the next frame. Then again with the large diamond the algorithm reached $(-3,-1)$ and then $(-4,-2)$. Here the best matching position for the large diamond shape was $(-4,-2)$, therefore the algorithm stopped using the large diamond and started with the small diamond. Finally, the small diamond returned once again as best match position $(-4,-2)$, which was then returned as final matching position for the block in the previous frame.
 
 \subsection{Affine Model Parameter Estimation}
 \begin{figure*}[!h]
     \removelatexerror
     \input{../assets/code/algorithm.tex}
 \end{figure*}
-In \cref{sec:motion-models}, we presented the affine motion model, which is the one we decided to use in our implementation.
+In \cref{sec:motion-models} we presented the affine motion model, which is the one we decided to use in our implementation.
 
-To get the motion vector of a certain position $p=\{x,y\}$ in the previous frame, we can solve the following formulation of the affine model:
+To get the motion vector of a certain position $p=(x,y)$ in the previous frame, we can solve the following formulation of the affine model:
 \input{../assets/math/displacement-matrix-formulation.tex}
-where $d(p, a)$ is the displacement for the position $p = \{x,y\}$, given the parameter vector $a$; $A[p]$ is an intermediate matrix that is computed as 
+where $d(p, a)$ is the displacement for the position $p = (x,y)$, given the parameter vector $a$; $A[p]$ is an intermediate matrix that is computed as 
 \input{../assets/math/affine-model-parameter-matrix.tex}
 
 By encoding the estimation of the motion field in this way, the $p$-norm error we are trying to minimize (see \cref{eq:indirect-estimation}), gets rewritten in this way:
@@ -92,13 +92,11 @@ There are three interesting notes about \cref{eq:optimal-parameter-affine}:
 \begin{enumerate}
     \item we are iterating over a set of positions $p$: it's interesting to notice that these points do not need to cover the complete scene, i.e. we can use only a subset of the image to optimize the parameters;
     \item each one of the points can be weighted with a weight $w(p)$ as shown in \cref{eq:optimal-parameter-affine-weighted};
-    \item we can actually split the computation of the parameter vector $a = [a_1, a_2, a_3, b_1, b_2, b_3]$ in two different slices, $a_x = [a_1, a_2, a_3]$ and $a_y = [b_1, b_2, b_3]$, which can be computed in a specular way as shown in \cref{eq:optimal-parameter-affine-weighted-halved} this is useful to further reduce the complexity of the procedure.
+    \item we can actually split the computation of the parameter vector $a = [a_1, a_2, a_3, b_1, b_2, b_3]$ in two different slices, $a_x = [a_1, a_2, a_3]$ and $a_y = [b_1, b_2, b_3]$, which can be computed in a specular way as shown in \cref{eq:optimal-parameter-affine-weighted-halved}\footnote{Notice the shape of the intermediate matrix $A_x(p) = [1,x,y]$ in \cref{eq:optimal-parameter-affine-weighted-halved}.}; this is useful to further reduce the complexity of the procedure.
 \end{enumerate} 
 
 \input{../assets/math/optimal-parameter-affine-weighted.tex}
 \input{../assets/math/optimal-parameter-affine-weighted-halved.tex}
-where $A_x(p) = [1,x,y]$.
-
 The form of the solution that we used in the implementation is the one reported in \cref{eq:optimal-parameter-affine-weighted-halved}.
 
 \subsection{Hierarchical Robust Estimation}
@@ -107,13 +105,15 @@ The last part of the project is a strategy used to provide a robust estimation o
 The proposed implementation is inspired by \cite{Dufeaux2000}, where the computation of the motion field takes place at different levels of resolution subsequently.
 
 The main idea is to compute the parameter vector $a$ at a coarser resolution, and then use this coarser estimation to extract information useful for regularizing the estimation at finer resolutions. 
-In practice, this translates in our code being structured as shown in \cref{fig:implementation-flow}: the two frames we use as previous and next frame are, first of all, transformed in multi-resolution pyramids, and then used iteratively for the process of parameter estimation.
+In practice, this translates in our code being structured as shown in \cref{fig:implementation-flow}: first of all, the two frames we use as previous and next frames are transformed in multi-resolution pyramids, and then used iteratively for the process of parameter estimation.
 
-Here we report a summary of the procedure used to implement the hierarchical robust etimation:
+Here we report a summary of the procedure used to implement the hierarchical robust estimation:
 \begin{enumerate}
     \item for each iteration we get as input the frames at the corresponding level $l$ of the pyramid (at a finer resolution w.r.t the previous iteration at level $l-1$) and the parameter vector $a_{l-1}$ computed in the previous iteration;
-    \item we use the (scaled) parameters $a_{l-1}$ to compute the error for each position $p$ in the frames at level $l$; error is computed as difference between the ground truth motion vector in $p$ and the motion vector obtained with the motion model in $p$ with parameters $a_{l-1}$;
+    \item we use the scaled parameters $a_{l-1}$ to compute the error for each position $p$ in the frames at level $l$; the error is computed as difference between the ground truth motion vector in $p$ and the motion vector obtained with the motion model in $p$ with parameters $a_{l-1}$;
     \item to detect the outliers we order all positions $p$ by the magnitude of the error, we set a fixed percentage \texttt{outlier\_percentage} and all the positions that fall in that percentage of higer-error-positions are marked as outliers;
     \item once we have marked all the outliers, we can proceed and compute the new estimate of the parameter vector $a_{l}$ ignoring the outliers;
     \item the new estimate will be returned to the next level $l+1$ of the hierarchical procedure, or simply returned to the caller of the function when we reach the last level.
 \end{enumerate}
+
+In \cref{alg:gme} we present the pseudocode summarizing the procedure.
