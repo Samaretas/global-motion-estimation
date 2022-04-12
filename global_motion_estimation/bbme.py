@@ -680,7 +680,7 @@ if __name__ == "__main__":
         dest="pnorm",
         type=int,
         default=0,
-        help="pnorm distance to use",
+        help="0: 1-norm (mae), 1: 2-norm (mse)",
     )
     parser.add_argument(
         "-bs",
