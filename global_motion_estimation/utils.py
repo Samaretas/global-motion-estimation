@@ -178,4 +178,11 @@ if __name__ == "__main__":
     # print(matrix)
     # histogram = np.histogram(matrix, np.array([i for i in range(10)]))
     # print(histogram)
-    some_data('venv/psnr_records.json')
+    # some_data('venv/psnr_records.json')
+    import os
+    base_path = os.path.join("results")
+    for d in os.listdir(base_path):
+        video_data = os.path.join(base_path, d, "psnr_records.json")
+        print(f"video {d}") # name of video
+        some_data(video_data)
+        print("======================")
