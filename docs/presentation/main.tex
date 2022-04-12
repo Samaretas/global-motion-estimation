@@ -158,13 +158,15 @@
 	BBME algorithms perform motion estimation and return the motion field to use as ground truth for indirect parameter estimation
 
 	\bigskip	
-	We implemented 4 well-known BBME algorithms:
-	\begin{itemize}
-		\item exhaustive search
-		\item three-step search
-		\item 2D log search
-		\item diamond search
-	\end{itemize}    
+    \begin{exampleblock}{Chosen algorithms}
+        We implemented 4 well-known BBME algorithms:
+        \begin{itemize}
+            \item exhaustive search
+            \item three-step search
+            \item 2D log search
+            \item diamond search
+        \end{itemize}        
+    \end{exampleblock}
 \end{frame}
 
 \begin{frame}{Exhaustive search}
@@ -393,9 +395,25 @@
 
 \section{Conclusions}
 \begin{frame}
-    \begin{center}
-        {\Huge\calligra Thanks!}
-    \end{center}
+    \begin{block}{Summary}
+        In this work, we have presented:
+        \begin{itemize}
+            \item a broad introduction to the problem of global motion estimation
+            \item an in-depth explanation of the theoretical foundations of our solution
+            \item the framework we developed from the aforementioed literature
+            \begin{itemize}
+                \item the BBME algorithms chosen
+                \item the computation of the parameter for the affine model
+                \item the removal of outliers
+                \item the implementation of the multiscale approach
+            \end{itemize}
+            \item an analysis of the results of our solution
+            \begin{itemize}
+                \item qualitative results, using motion compensation
+                \item quantitative results, comparing PSNR values
+            \end{itemize} 
+        \end{itemize}        
+    \end{block}
 \end{frame}
 
 \end{document}
