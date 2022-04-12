@@ -4,7 +4,7 @@ Results are reported both in a qualitative and quantitative way.
 
 ![Procedure pseudocode](./docs/assets/images/algorithm.png)
 
-In the [project report] ([docs](docs) folder) you can find more details of both foundations and implementation details.
+In the [project report](docs/report/main.pdf) ([docs](docs) folder) you can find more details of both foundations and implementation details.
 
 ## Modules
 * `bbme.py`: module containing all the functions related to the various block matching motion estimation procedures that we have been trying;
