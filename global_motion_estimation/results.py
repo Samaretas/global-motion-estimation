@@ -6,13 +6,20 @@ import shutil
 import cv2
 import os
 
-FRAME_DISTANCE = 3
+import argparse
 
-video_list = ["numeri"]
 
-if __name__ == "__main__":
-    """Once set the video path and save path creates a lot of data for your report. Namely, it saves frames, compensated frames, frame differences and estimations of global motion.
-    """
+
+
+def main(args):
+    FRAME_DISTANCE = 1
+    video_list = []
+
+
+    video_list.append(args.path)
+    if args.fd is not None:
+        FRAME_DISTANCE = args.fd
+
     for video in video_list:
 
         video_path = os.path.join("resources", "videos", str(video+".mp4"))
@@ -103,3 +110,33 @@ if __name__ == "__main__":
             psnr_dict[idx_name] = str(psnr)
             with open(save_path + "psnr_records.json", "w") as outfile:
                 dump(psnr_dict, outfile)
+
+if __name__ == "__main__":
+    """Once set the video path and save path creates a lot of data for your report. Namely, it saves frames, compensated frames, frame differences and estimations of global motion.
+    """
+    parser = argparse.ArgumentParser(
+        description="Launches GME and yields results"
+    )
+    parser.add_argument(
+        "-v",
+        "--video-name",
+        dest="path",
+        type=str,
+        required=True,
+        help="name of the video to analyze (no ext)",
+    )
+    parser.add_argument(
+        "-f",
+        "--frame-distance",
+        dest="fd",
+        type=str,
+        required=False,
+        help="frame displacement",
+    )
+    args = parser.parse_args()
+
+    main(args)
+
+
+
+    
