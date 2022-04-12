@@ -103,7 +103,7 @@ The `results.py` scripts on video `pan240.mp4`  yields the following result:
 │  ├── 🖼️ 0000.png
 │  ├── 🖼️ ........
 │  └── 🖼️ XXXX.png
-└──  psnr_records.json
+└── 📄 psnr_records.json
 ```
 
 * **compensated**: collection of compensated previous frames
