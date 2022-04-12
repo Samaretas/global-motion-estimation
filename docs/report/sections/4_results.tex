@@ -78,6 +78,10 @@ To perform a numeric quantitative analysis of the results produced by the algori
 
 Therefore, in \cref{tab:psnr}, we present some PSNR values for different video sequences. We annotated the table with some considerations about the videos, since PSNR value is influenced also about properties of the video like the strength of motion or the presence/absence of real motion.
 
+For instance, in the case where there are medium or big objects, like the last two entries of the table, the PSNR turns out to be low, since the model isn't able to distinguish between object and camera motion.
+
+Better results can be observed in the first two entries of the table, where the moving object are considerably smaller w.r.t. the background, and the background presents some complex pattern, which enables the algorithm to better detect its motion.
+
 \begin{table}
     \label{tab:psnr}
     \input{../assets/tables/psnr.tex}

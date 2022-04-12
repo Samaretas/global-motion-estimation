@@ -6,17 +6,8 @@ from utils import get_pyramids
 from bbme import get_motion_field
 import itertools
 
-BBME_BLOCK_SIZE = 12
-MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE = .3
-
-# TODO: delete during cleanup
-OUTLIER_PERCENTAGE = 0.1
-N_MAX_ITERATIONS = 32
-GRADIENT_THRESHOLD1 = 0.1
-GRADIENT_THRESHOLD2 = 0.001
-# Note: SVD prcedure empirically reaches worse performances
-DIRECT_INVERSE = True
-np.seterr(all="raise")
+BBME_BLOCK_SIZE = 24
+MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE = .2
 
 
 def dense_motion_estimation(previous, current):
