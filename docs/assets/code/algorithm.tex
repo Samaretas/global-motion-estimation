@@ -1,7 +1,6 @@
 \begin{algorithm}[H]
-    \label{alg:gme}
     \DontPrintSemicolon
-
+    
     \SetKwData{params}{\(a\)}
     \SetKwData{out}{outliers}
     \SetKwData{prevp}{prev\_pyrs}
@@ -10,7 +9,7 @@
     \SetKwData{curf}{cur\_frame}
     \SetKwData{gt}{ground\_truth\_mfield}
     \SetKwData{est}{estimated\_mfield}
-
+    
     \SetKwFunction{Pyr}{get\_pyr}
     \SetKwFunction{FirstEst}{first\_estimation}
     \SetKwFunction{Next}{next}
@@ -18,7 +17,7 @@
     \SetKwFunction{Aff}{affine}
     \SetKwFunction{DetOut}{detect\_outliers}
     \SetKwFunction{Min}{minimize\_error}
-
+    
     \KwIn{\prevf, \curf}
     \KwOut{\params \quad \texttt{//\(\;\)parameter vector}}
     \;        
@@ -32,12 +31,13 @@
         \est = \Aff{\params}\;
         \out = \DetOut{\gt, \est}\;
         \params = \Min{\prevf, \curf, \out}\;
-    }
-
-    \Return \params\;
-
-    \caption{High-level pseudocode of our solution.}
-\end{algorithm}
+        }
+        
+        \Return \params\;
+        
+        \caption{High-level pseudocode of our solution.}
+        \label{alg:gme}
+    \end{algorithm}
 
 
 % prev_pyr = get_pyr(previous_frame)
