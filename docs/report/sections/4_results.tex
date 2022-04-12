@@ -2,7 +2,6 @@
 \label{sec:04-results}
 
 \subsection{Qualitative results}
-
 To show the results of global motion estimation it is easier to use some qualitative information, also because the reader will understand it straightforwardly.
 
 One of the applications that shows intuitively the implications of global motion estimation is camera motion compensation. 
@@ -18,7 +17,7 @@ To show the results obtained we reported in image \cref{fig:qualitative-results}
     \item the absolute difference between the next frame and the compensated one in \cref{fig:diff-curr-comp}.
 \end{itemize}
 
-\begin{figure*}[htbp]
+\begin{figure*}[!h]
 
     \begin{subfigure}[b]{0.3\textwidth}
         \centering
@@ -82,8 +81,22 @@ For instance, in the case where there are medium or big objects, like the last t
 
 Better results can be observed in the first two entries of the table, where the moving object are considerably smaller w.r.t. the background, and the background presents some complex pattern, which enables the algorithm to better detect its motion.
 
-\begin{table}
+\begin{table*}[!t]
+    \begin{center}
     \label{tab:psnr}
-    \input{../assets/tables/psnr.tex}
+    \begin{tabular}{ll|rrrr}
+        \toprule
+        Video & Properties & Average & Variance & Maximum & Minimum \\
+        \midrule
+        \texttt{pan240.mp4} & Fast motion & \(22.724\)  & \(5.125\)  & \(27.802\) & \(17.981\)  \\
+    
+        \texttt{coastguard\_qcif.mp4} & Two object moving, background moving & \(22.733\)  & \(2.194\)  & \(26.875\) & \(15.158\)  \\
+    
+        \texttt{foreman.mp4} & Big object moving, still background & \(19.677\)  & \(18.443\)  & \(30.436\) & \(11.746\)  \\
+        
+        \texttt{numeri\_del\_piero.mp4} & Medium object moving, moving background & \(19.072\)  & \(13.642\)  & \(47.722\) & \(16.323\)  \\
+        \bottomrule
+    \end{tabular}
     \caption{PSNR results on some video samples}
-\end{table}    
+    \end{center}
+\end{table*}    
