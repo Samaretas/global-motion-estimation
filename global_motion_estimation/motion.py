@@ -7,7 +7,7 @@ from bbme import get_motion_field
 import itertools
 
 BBME_BLOCK_SIZE = 24
-MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE = .2
+MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE = .3
 
 
 def dense_motion_estimation(previous, current):
@@ -105,7 +105,7 @@ def affine_model(x, y, parameters):
     return d
 
 
-@timer
+# @timer
 def global_motion_estimation(previous, current):
     """Method to perform the global motion estimation.
     - uses affine model to model global motion

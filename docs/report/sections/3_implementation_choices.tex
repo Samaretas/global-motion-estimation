@@ -1,7 +1,7 @@
 \section{Implementation choices}
 \label{sec:03-implementation}
 
-As stated in \cref{sec:motion-models}, we decided to use an indirect method with affine model for motion estimation as in Bergen et al.\cite{Bergen92}; also, we decided to obtain a robust estimation by using a strategy similar to Dufaux and Konrad\cite{Dufeaux2000}, where they adopt a hierarchical approach to obtain a robust estimation using coarse resolution to guide the search for the best parameters at a finer resolution.
+As stated in \cref{sec:motion-models}, we decided to use an indirect method with affine model for motion estimation as in Bergen et al.\cite{Bergen92}; also, we decided to obtain a robust estimation by using a strategy similar to \cite{Dufeaux2000,Ayer94,He01}, where they adopt a hierarchical approach to obtain a robust estimation using coarse resolution to guide the search for the best parameters at a finer resolution.
 
 In the following sections, we will provide an in-depth explaination of our solution and present the pseudocode of the algorithm (see \cref{alg:gme}). A schematic representation of the procedure is presented in \cref{fig:implementation-flow}.
 

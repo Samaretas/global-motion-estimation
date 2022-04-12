@@ -180,8 +180,10 @@ cython_debug/
 .ionide
 
 # User defined
-results/
 *.mp4
 !pan240.mp4
+results/*
+|results/.gitkeep
+
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,opencv

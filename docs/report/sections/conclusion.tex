@@ -16,3 +16,10 @@ The actual implementation is to be found in the following GitHub repository \url
 In the repository it will be possible to run the basic example with \texttt{pan240.mp4}, whether the other videos of the dataset can be found here \url{https://drive.google.com/drive/folders/1gZisWe4DEWpb_CoHkTi6OKnxhl5Ca_mT?usp=sharing}.
 
 For more information on the code and how to perform a full-cycle execution of the pipeline, please refer to the Github repository.
+
+This project presents some limitations that will be handled in future developments:
+\begin{itemize}
+    \item first, there is no automated way to set the distance between previous and next frame, in fact, often we need to set more than one frame of distance between \textit{previous} and \textit{next}, otherwise the motion is too small to compute GME;
+    \item then, to have a comparison with other methods, like the ones cited before, we would need to insert this piece of code in a pipeline for video encoding, to record its performance both in accuracy and efficiency;
+    \item finally, there are some intrinsic limitations to the task of GME, some of them are even presented in the results reported here, for instance the setting in which the scene is too noisy of the objects are bigger than the actual background.
+\end{itemize}
