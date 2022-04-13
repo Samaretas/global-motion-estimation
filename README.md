@@ -5,8 +5,23 @@ We adopt an indirect approach based on the affine motion model. Following a mult
 Results are reported both in a qualitative and quantitative way. 
 
 ## Pseudocode
+```python
+# Input: previous_frame, current_frame
+# Output: a (parameter vector)
 
-![Procedure pseudocode](./docs/assets/images/algorithm.png)
+prev_pyrs = get_pyr(previous_frame)
+cur_pyrs = get_pyr(current_frame)
+a = first_estimation(prev_pyrs.next(), cur_pyrs.next())
+for l in pyr_levels:
+    prev_frame = prev_pyrs.next()
+    cur_frame = cur_pyrs.next()
+    ground_truth_mfield = BBME(prev_frame, cur_frame)
+    estimated_mfield = affine(a)
+    outliers = detect_outliers(ground_truth_mfield, estimated_mfield)
+    a = minimize_error(prev_frame, cur_frame, outliers)
+return a
+```
+<!-- ![Procedure pseudocode](./docs/assets/images/algorithm.png) -->
 
 In the [project report](docs/report/main.pdf) ([docs](docs) folder) you can find more details of both foundations and implementation details.
 
