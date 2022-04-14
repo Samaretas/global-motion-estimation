@@ -339,52 +339,96 @@
 
 \section{Results}
 \subsection{Qualitative: motion compensation}
-\begin{frame}{Compensation}
+\begin{frame}{Motion compensation}
     \begin{figure}[htbp]
         \begin{subfigure}[b]{0.3\textwidth}
             \centering
-            \includegraphics[width=.9\textwidth]{../assets/images/04-prev-frame.png}
+            \includegraphics[width=.9\textwidth]{images/pan240-prev-frame.png}
             \caption{Previous frame}
-            \label{fig:prev-frame}
+            \label{fig:pan240-prev-frame}
         \end{subfigure}
         \hfill
         \begin{subfigure}[b]{0.3\textwidth}
-            \includegraphics[width=.9\textwidth]{../assets/images/04-curr-frame.png}
+            \includegraphics[width=.9\textwidth]{images/pan240-curr-frame.png}
             \caption{Previous frame}
-            \label{fig:curr-frame}
+            \label{fig:pan240-curr-frame}
         \end{subfigure}
         \hfill
         \begin{subfigure}[b]{0.3\textwidth}
-            \includegraphics[width=.9\textwidth]{../assets/images/04-compensated.png}
+            \includegraphics[width=.9\textwidth]{images/pan240-compensated.png}
             \caption{Compensated frame}
-            \label{fig:compensated}
+            \label{fig:pan240-compensated}
         \end{subfigure}
         
         \begin{subfigure}[b]{0.3\textwidth}
             \centering
-            \includegraphics[width=.9\textwidth]{../assets/images/04-diff-curr-prev-1.png}
+            \includegraphics[width=.9\textwidth]{images/pan240-diff-curr-prev-1.png}
             \caption{Absolute difference between current and previous frame}
-            \label{fig:diff-curr-prev}
+            \label{fig:pan240-diff-curr-prev}
         \end{subfigure}
         \hfill
         \begin{subfigure}[b]{0.3\textwidth}
-            \includegraphics[width=.9\textwidth]{../assets//images/04-camera-motion-1.png}
+            \includegraphics[width=.9\textwidth]{images/pan240-camera-motion-1.png}
             \caption{Global motion field estimated by our procedure}
-            \label{fig:est-mf}
+            \label{fig:pan240-est-mf}
         \end{subfigure}
         \hfill
         \begin{subfigure}[b]{0.3\textwidth}
-            \includegraphics[width=.9\textwidth]{../assets/images/04-diff-curr-comp.png}
+            \includegraphics[width=.9\textwidth]{images/pan240-diff-curr-comp.png}
             \caption{Absolute difference between current and compensated frame}
-            \label{fig:diff-curr-comp}
+            \label{fig:pan240-diff-curr-comp}
         \end{subfigure}
     
-        \caption{Estimated trajectories.}
+        % \caption{Estimated trajectories.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Motion compensation}
+    \begin{figure}[htbp]
+        \begin{subfigure}[b]{0.3\textwidth}
+            \centering
+            \includegraphics[width=.9\textwidth]{images/race-previous.png}
+            \caption{Previous frame}
+            \label{fig:race-prev-frame}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=.9\textwidth]{images/race-current.png}
+            \caption{Previous frame}
+            \label{fig:race-curr-frame}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=.9\textwidth]{images/race-compensated.png}
+            \caption{Compensated frame}
+            \label{fig:race-compensated}
+        \end{subfigure}
+        
+        \begin{subfigure}[b]{0.3\textwidth}
+            \centering
+            \includegraphics[width=.9\textwidth]{images/race-curr_prev_diff.png}
+            \caption{Absolute difference between current and previous frame}
+            \label{fig:race-diff-curr-prev}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=.9\textwidth]{images/race-model_motion_field.png}
+            \caption{Global motion field estimated by our procedure}
+            \label{fig:race-est-mf}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=.9\textwidth]{images/race-curr_comp_diff.png}
+            \caption{Absolute difference between current and compensated frame}
+            \label{fig:race-diff-curr-comp}
+        \end{subfigure}
+    
+        % \caption{Estimated trajectories.}
     \end{figure}
 \end{frame}
 
 \subsection{Quantitative: PSNR}
-\begin{frame}{Frame Title}
+\begin{frame}{PSNR results}
     \begin{table}
         \label{tab:psnr}
         \input{../assets/tables/psnr.tex}
