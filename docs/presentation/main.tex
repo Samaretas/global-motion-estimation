@@ -423,7 +423,51 @@
             \label{fig:race-diff-curr-comp}
         \end{subfigure}
     
-        % \caption{Estimated trajectories.}
+        \caption{Block size: 24, frame distance: 1}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Motion compensation}
+    \begin{figure}[htbp]
+        \begin{subfigure}[b]{0.3\textwidth}
+            \centering
+            \includegraphics[width=.9\textwidth]{images/dp-previous.png}
+            \caption{Previous frame}
+            \label{fig:dp-prev-frame}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=.9\textwidth]{images/dp-current.png}
+            \caption{Previous frame}
+            \label{fig:dp-curr-frame}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=.9\textwidth]{images/dp-compensated.png}
+            \caption{Compensated frame}
+            \label{fig:dp-compensated}
+        \end{subfigure}
+        
+        \begin{subfigure}[b]{0.3\textwidth}
+            \centering
+            \includegraphics[width=.9\textwidth]{images/dp-curr_prev_diff.png}
+            \caption{Absolute difference between current and previous frame}
+            \label{fig:dp-diff-curr-prev}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=.9\textwidth]{images/dp-model_motion_field.png}
+            \caption{Global motion field estimated by our procedure}
+            \label{fig:dp-est-mf}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=.9\textwidth]{images/dp-curr_comp_diff.png}
+            \caption{Absolute difference between current and compensated frame}
+            \label{fig:dp-diff-curr-comp}
+        \end{subfigure}
+    
+        \caption{Block size: 16, frame distancce: 3}
     \end{figure}
 \end{frame}
 

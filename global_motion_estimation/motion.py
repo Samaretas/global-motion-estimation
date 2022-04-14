@@ -6,7 +6,7 @@ from utils import get_pyramids
 from bbme import get_motion_field
 import itertools
 
-BBME_BLOCK_SIZE = 24
+BBME_BLOCK_SIZE = 16
 MOTION_VECTOR_ERROR_THRESHOLD_PERCENTAGE = .3
 
 
