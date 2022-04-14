@@ -18,12 +18,14 @@ def main(args):
         FRAME_DISTANCE = int(args.fd)
 
     video_path = os.path.join("resources", "videos", str(video+".mp4"))
-    save_path = os.path.join("results", video, "")
-
-
-    psnr_dict = {}
+    results_path = os.path.join("results", "")
+    save_path = os.path.join(results_path, video, "")
     if os.path.isdir(save_path):
         shutil.rmtree(save_path)
+    if os.path.isdir(results_path):
+        shutil.rmtree(results_path)
+
+    os.mkdir(results_path)
     os.mkdir(save_path)
     os.mkdir(os.path.join(save_path, "frames", ""))
     os.mkdir(os.path.join(save_path, "compensated", ""))
@@ -31,6 +33,7 @@ def main(args):
     os.mkdir(os.path.join(save_path, "model_motion_field", ""))
     os.mkdir(os.path.join(save_path, "curr_comp_diff", ""))
 
+    psnr_dict = {}
     frames = get_video_frames(video_path)
     print("frame shape: {}".format(frames[0].shape))
     for idx in range(FRAME_DISTANCE, len(frames)):
