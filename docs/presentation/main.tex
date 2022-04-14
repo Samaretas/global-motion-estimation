@@ -72,7 +72,7 @@
 
 \section{The problem}
 \begin{frame}{Global motion estimation}
-    The motion in videos can be analized as the displacement of pixel per pair of frames
+    The motion in videos can be analyzed as the displacement of pixel per pair of frames
     \bigskip
 
     \begin{columns}
@@ -125,8 +125,8 @@
     \end{itemize}
     \bigskip
     For our solution we opted for \bold{indirect methods}
-    \begin{block}{Indirect paramter update}
-        The parameter vector \(a\) is updated by choosing the parameters that minimize the dissimilarity of the \(gt(x)\) and the prediction \(MM(x,a)\) for a point \(x\)
+    \begin{block}{Indirect parameter update}
+        The parameter vector \(a\) is updated by choosing the parameters that minimize the dissimilarity of the \(gt(p)\) and the prediction \(MM(p,a)\) for a point \(p\)
         \input{../assets/math/indirect-estimation.tex}
     \end{block}
 \end{frame}
@@ -476,7 +476,7 @@
     \begin{table}
         \label{tab:psnr}
         \input{../assets/tables/psnr.tex}
-        \caption{PSNR result on a vunch of samples}
+        \caption{PSNR result on a some example video sequences}
     \end{table}    
 \end{frame}
 
