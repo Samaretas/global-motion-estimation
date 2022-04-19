@@ -94,6 +94,11 @@ In order to reduce computation time, we suggest to scale down higher-resolution 
 ffmpeg -i full-res-video.mp4 scale=720:480 scaled-video.mp4
 ```
 
+## Results
+An example of the results is reported here, refer to the [project report](docs/report/main.pdf) for a detailed explanation.
+
+![Example of result](./docs/assets/images/results_example.jpg)
+
 ## How to navigate results
 The `results.py` scripts on video `pan240.mp4`  yields the following result:
 ```bash
@@ -136,8 +141,3 @@ This is how you change the default configuration:
 * `motion.py`: open the [file](global_motion_estimation/motion.py) and change the constant declarations on top of the module
 
 Better configuration management is soon to come.
-
-## Results
-An example of the results is reported here, refer to the [project report](docs/report/main.pdf) for a detailed explanation.
-
-![Example of result](./docs/assets/images/results_example.jpg)
