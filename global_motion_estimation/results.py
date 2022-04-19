@@ -17,15 +17,14 @@ def main(args):
     if args.fd is not None:
         FRAME_DISTANCE = int(args.fd)
 
-    video_path = os.path.join("resources", "videos", str(video+".mp4"))
+    video_path = os.path.join("resources", "videos", video)
     results_path = os.path.join("results", "")
-    save_path = os.path.join(results_path, video, "")
+    save_path = os.path.join(results_path, video.replace(".mp4", ""), "")
     if os.path.isdir(save_path):
         shutil.rmtree(save_path)
-    if os.path.isdir(results_path):
-        shutil.rmtree(results_path)
+    if not os.path.isdir(results_path):
+        os.mkdir(results_path)
 
-    os.mkdir(results_path)
     os.mkdir(save_path)
     os.mkdir(os.path.join(save_path, "frames", ""))
     os.mkdir(os.path.join(save_path, "compensated", ""))
@@ -35,7 +34,10 @@ def main(args):
 
     psnr_dict = {}
     frames = get_video_frames(video_path)
-    print("frame shape: {}".format(frames[0].shape))
+    try:
+        print("frame shape: {}".format(frames[0].shape))
+    except:
+        raise Exception("Error reading video file: check the name of the video!")
     for idx in range(FRAME_DISTANCE, len(frames)):
 
         j = (idx + 1) / len(frames)
