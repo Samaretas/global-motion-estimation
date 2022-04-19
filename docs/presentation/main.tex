@@ -65,8 +65,7 @@
         \item a broad introduction to the problem of global motion estimation
         \item an overview of the theoretical foundations of our solution
         \item the framework we developed from the aforementioed literature
-        \item an analysis of the performances of our solution 
-        \item a brief discussion of the limitations and possible improvements
+        \item an analysis of the results of our solution 
     \end{itemize}
 \end{frame}
 
@@ -350,7 +349,7 @@
         \hfill
         \begin{subfigure}[b]{0.3\textwidth}
             \includegraphics[width=.9\textwidth]{images/pan240-curr-frame.png}
-            \caption{Previous frame}
+            \caption{Next frame}
             \label{fig:pan240-curr-frame}
         \end{subfigure}
         \hfill
@@ -379,7 +378,7 @@
             \label{fig:pan240-diff-curr-comp}
         \end{subfigure}
     
-        % \caption{Estimated trajectories.}
+        \caption{Block size: 12, frame distance: 5}
     \end{figure}
 \end{frame}
 
@@ -394,7 +393,7 @@
         \hfill
         \begin{subfigure}[b]{0.3\textwidth}
             \includegraphics[width=.9\textwidth]{images/race-current.png}
-            \caption{Previous frame}
+            \caption{Next frame}
             \label{fig:race-curr-frame}
         \end{subfigure}
         \hfill
@@ -431,43 +430,131 @@
     \begin{figure}[htbp]
         \begin{subfigure}[b]{0.3\textwidth}
             \centering
-            \includegraphics[width=.9\textwidth]{images/dp-previous.png}
+            \includegraphics[width=\textwidth]{images/dp-previous.png}
             \caption{Previous frame}
             \label{fig:dp-prev-frame}
         \end{subfigure}
         \hfill
         \begin{subfigure}[b]{0.3\textwidth}
-            \includegraphics[width=.9\textwidth]{images/dp-current.png}
-            \caption{Previous frame}
+            \includegraphics[width=\textwidth]{images/dp-current.png}
+            \caption{Next frame}
             \label{fig:dp-curr-frame}
         \end{subfigure}
         \hfill
         \begin{subfigure}[b]{0.3\textwidth}
-            \includegraphics[width=.9\textwidth]{images/dp-compensated.png}
+            \includegraphics[width=\textwidth]{images/dp-compensated.png}
             \caption{Compensated frame}
             \label{fig:dp-compensated}
         \end{subfigure}
         
         \begin{subfigure}[b]{0.3\textwidth}
             \centering
-            \includegraphics[width=.9\textwidth]{images/dp-curr_prev_diff.png}
+            \includegraphics[width=\textwidth]{images/dp-curr_prev_diff.png}
             \caption{Absolute difference between current and previous frame}
             \label{fig:dp-diff-curr-prev}
         \end{subfigure}
         \hfill
         \begin{subfigure}[b]{0.3\textwidth}
-            \includegraphics[width=.9\textwidth]{images/dp-model_motion_field.png}
+            \includegraphics[width=\textwidth]{images/dp-model_motion_field.png}
             \caption{Global motion field estimated by our procedure}
             \label{fig:dp-est-mf}
         \end{subfigure}
         \hfill
         \begin{subfigure}[b]{0.3\textwidth}
-            \includegraphics[width=.9\textwidth]{images/dp-curr_comp_diff.png}
+            \includegraphics[width=\textwidth]{images/dp-curr_comp_diff.png}
             \caption{Absolute difference between current and compensated frame}
             \label{fig:dp-diff-curr-comp}
         \end{subfigure}
     
-        \caption{Block size: 16, frame distancce: 3}
+        \caption{Block size: 16, frame distance: 3}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Motion compensation}
+    \begin{figure}[htbp]
+        \begin{subfigure}[b]{0.3\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{images/tokyo-previous.png}
+            \caption{Previous frame}
+            \label{fig:tokyo-prev-frame}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=\textwidth]{images/tokyo-current.png}
+            \caption{Next frame}
+            \label{fig:tokyo-curr-frame}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=\textwidth]{images/tokyo-compensated.png}
+            \caption{Compensated frame}
+            \label{fig:tokyo-compensated}
+        \end{subfigure}
+        
+        \begin{subfigure}[b]{0.3\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{images/tokyo-curr_prev_diff.png}
+            \caption{Absolute difference between current and previous frame}
+            \label{fig:tokyo-diff-curr-prev}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=\textwidth]{images/tokyo-model_motion_field.png}
+            \caption{Global motion field estimated by our procedure}
+            \label{fig:tokyo-est-mf}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=\textwidth]{images/tokyo-curr_comp_diff.png}
+            \caption{Absolute difference between current and compensated frame}
+            \label{fig:tokyo-diff-curr-comp}
+        \end{subfigure}
+    
+        \caption{Block size: 16, frame distance: 1}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Motion compensation}
+    \begin{figure}[htbp]
+        \begin{subfigure}[b]{0.3\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{images/bird-previous.png}
+            \caption{Previous frame}
+            \label{fig:bird-prev-frame}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=\textwidth]{images/bird-current.png}
+            \caption{Next frame}
+            \label{fig:bird-curr-frame}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=\textwidth]{images/bird-compensated.png}
+            \caption{Compensated frame}
+            \label{fig:bird-compensated}
+        \end{subfigure}
+        
+        \begin{subfigure}[b]{0.3\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{images/bird-curr_prev_diff.png}
+            \caption{Absolute difference between current and previous frame}
+            \label{fig:bird-diff-curr-prev}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=\textwidth]{images/bird-model_motion_field.png}
+            \caption{Global motion field estimated by our procedure}
+            \label{fig:bird-est-mf}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.3\textwidth}
+            \includegraphics[width=\textwidth]{images/bird-curr_comp_diff.png}
+            \caption{Absolute difference between current and compensated frame}
+            \label{fig:bird-diff-curr-comp}
+        \end{subfigure}
+    
+        \caption{Block size: 32, frame distance: 1}
     \end{figure}
 \end{frame}
 
